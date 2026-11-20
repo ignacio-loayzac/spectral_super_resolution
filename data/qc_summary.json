@@ -1,0 +1,18 @@
+{
+  "criterion": "Pearson r(OLI, boxcar Hyperion) >= 0.5 in Red and NIR",
+  "excluded_train_scenes": [
+    5,
+    6
+  ],
+  "failing_val_scenes": [],
+  "failing_test_scenes": [],
+  "n_train_v2": 3294,
+  "prefixes_v2": {
+    "hyperion_train": "splits/v2/hyperion_train_npy/",
+    "landsat_train": "splits/v2/landsat_train_npy/",
+    "hyperion_val": "splits/v1/hyperion_val_npy/",
+    "landsat_val": "splits/v1/landsat_val_npy/",
+    "hyperion_test": "hyperion_test_npy/",
+    "landsat_test": "landsat_test_npy/"
+  }
+}

@@ -149,6 +149,7 @@ def train_command(args):
             in_channels=175 if args.mode == "autoencoder" else 7,
             out_channels=175,
             encoder_channels=args.encoder_channels,
+            kernel_mode=args.kernel_mode,
         )
         data_config = DataConfig(
             hyperion_train_dir=hyp_train,
@@ -157,7 +158,10 @@ def train_command(args):
             landsat_val_dir=ls_val,
             batch_size=args.batch_size,
             num_workers=args.num_workers,
+            data_scale=args.data_scale,
+            augment=args.augment,
         )
+        degradation_local = _resolve_file(args.degradation_path, cfg, tmp)
         train_config = TrainConfig(
             mode=args.mode,
             loss_type=args.loss,
@@ -171,6 +175,17 @@ def train_command(args):
             checkpoint_every=args.checkpoint_every,
             device=args.device,
             seed=args.seed,
+            gram_mode=args.gram_mode,
+            feature_loss_coeff=args.feature_loss_coeff,
+            sam_loss_coeff=args.sam_loss_coeff,
+            consistency_coeff=args.consistency_coeff,
+            degradation_path=degradation_local,
+            consistency_bands=args.consistency_bands,
+            ae_kernel_mode=args.ae_kernel_mode,
+            ae_input_scale=args.ae_input_scale,
+            use_mask=not args.no_mask,
+            early_stopping_patience=args.early_stopping_patience,
+            lr_scheduler=args.lr_scheduler,
         )
 
         trainer = Trainer(model_config, data_config, train_config)
@@ -270,7 +285,7 @@ Examples (local paths):
                          help="autoencoder: Hyperion→Hyperion | sr: Landsat→Hyperion")
     train_p.add_argument("--model", required=True, choices=["hourglass", "koundinya"],
                          help="Model architecture")
-    train_p.add_argument("--loss", default="mse", choices=["mse", "perceptual"])
+    train_p.add_argument("--loss", default="mse", choices=["mse", "l1", "l1_sam", "perceptual"])
     train_p.add_argument("--ae-checkpoint", default=None,
                          help="Local path or r2://key of pretrained AE "
                               "(required for --loss perceptual)")
@@ -293,6 +308,24 @@ Examples (local paths):
     hp.add_argument("--block-coeff", type=parse_block_coeff, default=[1.0, 1.0, 1.0],
                     metavar="A,B,C")
     hp.add_argument("--seed", type=int, default=42)
+
+    imp = train_p.add_argument_group("method improvements (BACKLOG E-M)")
+    imp.add_argument("--kernel-mode", choices=["spatial", "spectral"], default="spatial")
+    imp.add_argument("--data-scale", type=float, default=1.0,
+                     help="divide stored values by this (10000 -> reflectance)")
+    imp.add_argument("--augment", action="store_true", help="random rot90/flip on train")
+    imp.add_argument("--no-mask", action="store_true", help="do not ignore no-data pixels")
+    imp.add_argument("--early-stopping-patience", type=int, default=0)
+    imp.add_argument("--lr-scheduler", choices=["none", "plateau"], default="none")
+    imp.add_argument("--gram-mode", choices=["raw", "correlation"], default="raw")
+    imp.add_argument("--feature-loss-coeff", type=float, default=0.0, metavar="γ")
+    imp.add_argument("--sam-loss-coeff", type=float, default=0.0)
+    imp.add_argument("--consistency-coeff", type=float, default=0.0, metavar="λ")
+    imp.add_argument("--degradation-path", default=None, help="local or r2:// 175x7 / 176x7 .npy")
+    imp.add_argument("--consistency-bands", type=lambda s: [int(v) for v in s.split(",")], default=None,
+                     help="comma-separated OLI band indices for the consistency term, e.g. 2,4,5,6")
+    imp.add_argument("--ae-kernel-mode", choices=["spatial", "spectral"], default="spatial")
+    imp.add_argument("--ae-input-scale", type=float, default=1.0)
 
     out_grp = train_p.add_argument_group("output")
     out_grp.add_argument("--output-dir", default="./outputs")

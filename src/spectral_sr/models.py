@@ -22,17 +22,26 @@ class Hourglass(nn.Module):
     """
     
     def __init__(self, in_channels: int, out_channels: int, 
-                 ub_out_channels: int, mb_out_channels: int, lb_out_channels: int):
+                 ub_out_channels: int, mb_out_channels: int, lb_out_channels: int,
+                 kernel_mode: str = "spatial"):
         super(Hourglass, self).__init__()
+        if kernel_mode not in ("spatial", "spectral"):
+            raise ValueError(f"kernel_mode must be 'spatial' or 'spectral', got {kernel_mode}")
+        # "spatial": 3x3 / 5x5 kernels (2020 architecture).
+        # "spectral": every convolution is 1x1, i.e. a per-pixel spectral network.
+        self.kernel_mode = kernel_mode
+        k3, p3, k5, p5 = (3, 1, 5, 2) if kernel_mode == "spatial" else (1, 0, 1, 0)
         
         self.in_channels = in_channels
         self.out_channels = out_channels
         
         # Encoder
-        self.encoder_upperBlock = self._conv_block(in_channels, ub_out_channels, stride2=1)
+        self.encoder_upperBlock = self._conv_block(in_channels, ub_out_channels, stride2=1,
+                                                    kernel_size=k3, padding=p3)
         self.encoder_middleBlock = self._conv_block(ub_out_channels, mb_out_channels, 
-                                                     stride2=1, kernel_size=5, padding=2)
-        self.encoder_lowerBlock = self._conv_block_single(mb_out_channels, lb_out_channels)
+                                                     stride2=1, kernel_size=k5, padding=p5)
+        self.encoder_lowerBlock = self._conv_block_single(mb_out_channels, lb_out_channels,
+                                                          kernel_size=k3, padding=p3)
         
         # Skip connections
         self.skip2 = nn.Conv2d(ub_out_channels, mb_out_channels, kernel_size=1)
@@ -42,12 +51,14 @@ class Hourglass(nn.Module):
         self._register_load_state_dict_pre_hook(self._remap_legacy_keys)
         
         # Decoder
-        self.decoder_lowerBlock = self._conv_block_single(lb_out_channels, lb_out_channels)
+        self.decoder_lowerBlock = self._conv_block_single(lb_out_channels, lb_out_channels,
+                                                          kernel_size=k3, padding=p3)
         self.decoder_middleBlock = self._conv_block(lb_out_channels, mb_out_channels, 
                                                      stride2=1, upsample=False, 
-                                                     kernel_size=5, padding=2)
+                                                     kernel_size=k5, padding=p5)
         self.decoder_upperBlock = self._conv_block(mb_out_channels, out_channels, 
-                                                    stride2=1, upsample=False, final_layer=True)
+                                                    stride2=1, upsample=False, final_layer=True,
+                                                    kernel_size=k3, padding=p3)
     
     @staticmethod
     def _remap_legacy_keys(state_dict, prefix, *args, **kwargs):
@@ -90,6 +101,17 @@ class Hourglass(nn.Module):
             nn.LeakyReLU(inplace=True)
         )
     
+    def encode_features(self, x: torch.Tensor):
+        """Encoder block activations (UB, MB, LB), used by the perceptual loss.
+
+        Unlike forward hooks with ``.detach()`` (2020 code), gradients flow
+        through these activations back to ``x``.
+        """
+        ub = self.encoder_upperBlock(x)
+        mb = self.encoder_middleBlock(ub)
+        lb = self.encoder_lowerBlock(mb)
+        return ub, mb, lb
+
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
         Forward pass through hourglass network.

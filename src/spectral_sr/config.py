@@ -88,7 +88,7 @@ class TrainConfig:
         block_coeff: Weights for encoder blocks [upper, middle, lower]
         output_dir: Directory to save checkpoints and logs
         checkpoint_every: Save checkpoint every N epochs
-        device: Device to use ('cuda' or 'cpu', None for auto-detect)
+        device: Device to use ('cuda', 'mps' or 'cpu'; None for auto-detect)
         seed: Random seed for reproducibility
     """
     mode: Literal['autoencoder', 'sr'] = 'sr'
@@ -135,7 +135,7 @@ class InferenceConfig:
         input_dir: Directory with input multispectral .npy patches
         output_dir: Directory to save reconstructed patches
         ground_truth_dir: Optional directory with ground truth for metrics
-        device: Device to use ('cuda' or 'cpu', None for auto-detect)
+        device: Device to use ('cuda', 'mps' or 'cpu'; None for auto-detect)
     """
     checkpoint: str
     input_dir: str

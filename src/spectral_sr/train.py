@@ -2,6 +2,7 @@
 
 import json
 import random
+import time
 from pathlib import Path
 from typing import Dict, Optional
 
@@ -16,6 +17,7 @@ from .datasets import SpectralDataset_npy, HyperspectralDataset_npy
 from .losses import GramLoss
 from .metrics import SSIM, SAM, MSE, RMSE
 from .models import Hourglass, Koundinya2D_CNN
+from .device import default_device
 
 
 def set_seed(seed: int):
@@ -56,7 +58,7 @@ class Trainer:
         
         # Set device
         if train_config.device is None:
-            self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+            self.device = torch.device(default_device())
         else:
             self.device = torch.device(train_config.device)
         
@@ -90,7 +92,11 @@ class Trainer:
             'val_losses': [],
             'val_ssim': [],
             'val_sam': [],
+            'epoch_seconds': [],
         }
+
+        # Optional hook called after every epoch: fn(epoch, total_epochs, history)
+        self.epoch_callback = None
     
     def _create_model(self) -> nn.Module:
         """Create model based on configuration."""
@@ -270,9 +276,11 @@ class Trainer:
         print(f"Mode: {self.train_config.mode}, Loss: {self.train_config.loss_type}")
         print("=" * 80)
         
+        self.history.setdefault('epoch_seconds', [])
         for epoch in range(self.train_config.epochs):
             print(f"\nEpoch {epoch + 1}/{self.train_config.epochs}")
             print("-" * 80)
+            epoch_start = time.perf_counter()
             
             # Train
             train_loss = self.train_epoch(epoch)
@@ -291,9 +299,15 @@ class Trainer:
             print(f"  Val SSIM:   {val_metrics['ssim']:.4f}")
             print(f"  Val SAM:    {val_metrics['sam']:.4f}°")
             
+            self.history['epoch_seconds'].append(round(time.perf_counter() - epoch_start, 2))
+            print(f"  Epoch time: {self.history['epoch_seconds'][-1]:.1f} s")
+
             # Save checkpoint
             if (epoch + 1) % self.train_config.checkpoint_every == 0:
                 self.save_checkpoint(epoch + 1)
+
+            if self.epoch_callback is not None:
+                self.epoch_callback(epoch + 1, self.train_config.epochs, self.history)
         
         print("\n" + "=" * 80)
         print("Training completed!")

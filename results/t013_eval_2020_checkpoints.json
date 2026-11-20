@@ -1,0 +1,82 @@
+{
+  "device": "mps",
+  "n_test_tiles": 2314,
+  "results": {
+    "UNet (hourglass) + MSE": {
+      "mse_batch_mean": 358617.1877141893,
+      "mse_global": 358961.2850801153,
+      "rmse_of_batch_mean_mse": 598.8465477183527,
+      "rmse_batch_mean": 560.6901887314596,
+      "rmse_global": 599.133778951008,
+      "rmse_reflectance": 0.0599133778951008,
+      "ssim_batch_mean": 0.426880646841473,
+      "sam_deg_batch_mean": 26.344337685467444,
+      "sam_rad_global": 0.4619143311555936,
+      "seconds": 55.0,
+      "thesis": {
+        "mse": 397764.405,
+        "rmse": 630.685,
+        "rmse_reflectance": 0.06306,
+        "ssim": 0.49794,
+        "sam": 0.19773
+      }
+    },
+    "UNet (hourglass) + Perceptual": {
+      "mse_batch_mean": 307099.03237785294,
+      "mse_global": 307731.51649581623,
+      "rmse_of_batch_mean_mse": 554.1651670556829,
+      "rmse_batch_mean": 521.979972447797,
+      "rmse_global": 554.7355374372695,
+      "rmse_reflectance": 0.05547355374372695,
+      "ssim_batch_mean": 0.41623646656548835,
+      "sam_deg_batch_mean": 26.563978299702683,
+      "sam_rad_global": 0.46596257947265196,
+      "seconds": 54.3,
+      "thesis": {
+        "mse": 353297.06,
+        "rmse": 594.387,
+        "rmse_reflectance": 0.05943,
+        "ssim": 0.5052,
+        "sam": 0.19094
+      }
+    },
+    "CNN (Koundinya) + MSE": {
+      "mse_batch_mean": 281153.8424857463,
+      "mse_global": 280667.43019054283,
+      "rmse_of_batch_mean_mse": 530.2394199658738,
+      "rmse_batch_mean": 501.88855618318894,
+      "rmse_global": 529.780549086641,
+      "rmse_reflectance": 0.052978054908664106,
+      "ssim_batch_mean": 0.3534416552243933,
+      "sam_deg_batch_mean": 25.574154435771785,
+      "sam_rad_global": 0.44828649563127815,
+      "seconds": 38.1,
+      "thesis": {
+        "mse": 537094.03,
+        "rmse": 732.866,
+        "rmse_reflectance": 0.07328,
+        "ssim": 0.36121,
+        "sam": 0.23311
+      }
+    },
+    "CNN (Koundinya) + Perceptual": {
+      "mse_batch_mean": 506265.88353432907,
+      "mse_global": 505790.37778370385,
+      "rmse_of_batch_mean_mse": 711.5236352605084,
+      "rmse_batch_mean": 658.9678482088716,
+      "rmse_global": 711.1894106239939,
+      "rmse_reflectance": 0.0711189410623994,
+      "ssim_batch_mean": 0.3944339048474619,
+      "sam_deg_batch_mean": 25.476529839920673,
+      "sam_rad_global": 0.44652460450031456,
+      "seconds": 38.1,
+      "thesis": {
+        "mse": 461736.502,
+        "rmse": 679.511,
+        "rmse_reflectance": 0.06795,
+        "ssim": 0.42282,
+        "sam": 0.21195
+      }
+    }
+  }
+}

@@ -27,6 +27,11 @@ LOG_LEVEL = _var("LOG_LEVEL")
 API_KEY = _var("API_KEY")
 SPECTRAL_SR_VERSION = _var("SPECTRAL_SR_VERSION")
 
+# Local cache for r2:// downloads (shared by all jobs in the same process / pod)
+CACHE_DIR = _var("CACHE_DIR")
+# Number of parallel threads used to download an r2:// directory
+DOWNLOAD_WORKERS = _var("DOWNLOAD_WORKERS")
+
 
 def getenv(name: str, default: str = "") -> str:
     return os.environ.get(name, default)

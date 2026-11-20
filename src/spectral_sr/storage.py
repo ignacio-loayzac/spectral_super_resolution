@@ -23,10 +23,16 @@ from __future__ import annotations
 import io
 import json
 import logging
+import os
+import random
 import tempfile
+import threading
+import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from contextlib import contextmanager
 from dataclasses import dataclass, field, replace
 from pathlib import Path
-from typing import List, Optional
+from typing import Callable, List, Optional, Tuple
 
 from . import env
 
@@ -118,79 +124,243 @@ def r2_key_from_path(path: str) -> str:
     return path[len("r2://"):]
 
 
+ProgressFn = Callable[[int, int, int], None]
+"""Progress callback signature: ``fn(files_done, files_total, bytes_done)``."""
+
+_DEFAULT_DOWNLOAD_WORKERS = 64
+_COMPLETE_MARKER = ".r2_complete.json"
+_MAX_ATTEMPTS = 6
+
+
+def download_workers() -> int:
+    """Parallel download threads (env ``SPECTRAL_RECONSTRUCTION_DOWNLOAD_WORKERS``, default 64)."""
+    try:
+        return max(1, int(env.getenv(env.DOWNLOAD_WORKERS, str(_DEFAULT_DOWNLOAD_WORKERS))))
+    except ValueError:
+        return _DEFAULT_DOWNLOAD_WORKERS
+
+
+def cache_root() -> Path:
+    """Root of the local r2:// cache (env ``SPECTRAL_RECONSTRUCTION_CACHE_DIR``)."""
+    root = env.getenv(env.CACHE_DIR) or os.path.join(tempfile.gettempdir(), "spectral_sr_cache")
+    return Path(root)
+
+
+def _client_for_threads(cfg: R2Config, max_workers: int):
+    """boto3 client whose connection pool can serve ``max_workers`` threads at once."""
+    import boto3
+    from botocore.config import Config
+
+    cfg.validate()
+    return boto3.client(
+        "s3",
+        endpoint_url=cfg.endpoint_url,
+        aws_access_key_id=cfg.access_key_id,
+        aws_secret_access_key=cfg.secret_access_key,
+        region_name="auto",
+        config=Config(max_pool_connections=max_workers + 4,
+                      retries={"max_attempts": 8, "mode": "adaptive"}),
+    )
+
+
+@contextmanager
+def _file_lock(lock_path: Path):
+    """Inter-process/thread exclusive lock (POSIX ``flock``); no-op where unavailable."""
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(lock_path, "w") as fh:
+        try:
+            import fcntl
+            fcntl.flock(fh, fcntl.LOCK_EX)
+        except ImportError:  # pragma: no cover - Windows
+            pass
+        try:
+            yield
+        finally:
+            try:
+                import fcntl
+                fcntl.flock(fh, fcntl.LOCK_UN)
+            except ImportError:  # pragma: no cover
+                pass
+
+
+def list_prefix(r2_prefix: str, cfg: Optional[R2Config] = None,
+                client=None) -> List[Tuple[str, int]]:
+    """Return ``[(key, size), ...]`` for every object under ``r2_prefix``."""
+    cfg = cfg or R2Config.from_env()
+    client = client or cfg.client()
+    out: List[Tuple[str, int]] = []
+    paginator = client.get_paginator("list_objects_v2")
+    for page in paginator.paginate(Bucket=cfg.bucket, Prefix=r2_prefix):
+        for obj in page.get("Contents", []):
+            if not obj["Key"].endswith("/"):
+                out.append((obj["Key"], int(obj["Size"])))
+    return out
+
+
+def download_prefix(r2_prefix: str, local_dir: str, cfg: Optional[R2Config] = None,
+                    max_workers: Optional[int] = None,
+                    progress: Optional[ProgressFn] = None) -> Tuple[int, int]:
+    """
+    Download every object under ``r2_prefix`` into ``local_dir`` using a thread pool.
+
+    Files that already exist locally with the same size are skipped, so an
+    interrupted download resumes where it left off.
+
+    Returns:
+        ``(files_total, bytes_total)``
+    """
+    cfg = cfg or R2Config.from_env()
+    max_workers = max_workers or download_workers()
+    client = _client_for_threads(cfg, max_workers)
+    prefix = r2_prefix.rstrip("/") + "/"
+    objects = list_prefix(prefix, cfg, client=client)
+    local_dir_path = Path(local_dir)
+    local_dir_path.mkdir(parents=True, exist_ok=True)
+
+    total_files = len(objects)
+    total_bytes = sum(size for _, size in objects)
+    pending = []
+    done_files, done_bytes = 0, 0
+    for key, size in objects:
+        local_file = local_dir_path / key[len(prefix):]
+        if local_file.is_file() and local_file.stat().st_size == size:
+            done_files += 1
+            done_bytes += size
+        else:
+            pending.append((key, size, local_file))
+
+    logger.info("r2://%s: %d objects (%.1f MB), %d already local, downloading %d with %d threads",
+                prefix, total_files, total_bytes / 1e6, done_files, len(pending), max_workers)
+    if progress:
+        progress(done_files, total_files, done_bytes)
+
+    def _fetch(item):
+        # One GET per object (download_file would add a HEAD per object), with
+        # explicit retries: R2 occasionally answers 5xx under high concurrency.
+        key, size, local_file = item
+        local_file.parent.mkdir(parents=True, exist_ok=True)
+        tmp = local_file.with_name(local_file.name + ".part")
+        for attempt in range(_MAX_ATTEMPTS):
+            try:
+                body = client.get_object(Bucket=cfg.bucket, Key=key)["Body"]
+                with open(tmp, "wb") as fh:
+                    for chunk in iter(lambda: body.read(1 << 20), b""):
+                        fh.write(chunk)
+                if tmp.stat().st_size != size:
+                    raise IOError(f"size mismatch for {key}: {tmp.stat().st_size} != {size}")
+                os.replace(tmp, local_file)
+                return size
+            except Exception as exc:  # noqa: BLE001 - retried, then re-raised
+                if attempt == _MAX_ATTEMPTS - 1:
+                    raise
+                delay = min(30.0, 0.5 * 2 ** attempt) * (0.5 + random.random())
+                logger.warning("r2://%s attempt %d failed (%s); retrying in %.1fs",
+                               key, attempt + 1, exc, delay)
+                time.sleep(delay)
+
+    lock = threading.Lock()
+    last_report = [0.0]
+    with ThreadPoolExecutor(max_workers=max_workers) as pool:
+        futures = [pool.submit(_fetch, item) for item in pending]
+        for fut in as_completed(futures):
+            size = fut.result()  # re-raises download errors
+            with lock:
+                done_files += 1
+                done_bytes += size
+                now = time.monotonic()
+                if progress and (now - last_report[0] > 2.0 or done_files == total_files):
+                    last_report[0] = now
+                    progress(done_files, total_files, done_bytes)
+
+    logger.info("r2://%s: %d files ready in %s", prefix, total_files, local_dir)
+    return total_files, total_bytes
+
+
 def resolve_path(path: str, cfg: Optional[R2Config] = None,
-                 tmp_dir: Optional[str] = None) -> str:
+                 tmp_dir: Optional[str] = None, use_cache: bool = True) -> str:
     """
     Resolve a path that may be local or an ``r2://`` reference.
 
-    If the path is a local path it is returned unchanged.
-    If it starts with ``r2://`` the object is downloaded to a temporary
-    file and that local path is returned.
-
-    Args:
-        path:    Local filesystem path or ``r2://key``
-        cfg:     R2Config to use for download (falls back to env vars)
-        tmp_dir: Optional directory for temp files (defaults to system temp)
-
-    Returns:
-        Local filesystem path string
+    Local paths are returned unchanged. ``r2://key`` objects are downloaded
+    once into the local cache (see :func:`cache_root`) and reused afterwards;
+    with ``use_cache=False`` they go to a fresh temp file in ``tmp_dir``.
     """
     if not is_r2_path(path):
         return path
 
     key = r2_key_from_path(path)
     cfg = cfg or R2Config.from_env()
+    client = cfg.client()
+
+    if use_cache:
+        local = cache_root() / cfg.bucket / key
+        with _file_lock(local.with_name(local.name + ".lock")):
+            size = int(client.head_object(Bucket=cfg.bucket, Key=key)["ContentLength"])
+            if local.is_file() and local.stat().st_size == size:
+                logger.info("Cache hit r2://%s -> %s", key, local)
+                return str(local)
+            local.parent.mkdir(parents=True, exist_ok=True)
+            tmp = local.with_name(local.name + ".part")
+            logger.info("Downloading r2://%s -> %s", key, local)
+            client.download_file(cfg.bucket, key, str(tmp))
+            os.replace(tmp, local)
+            return str(local)
 
     suffix = Path(key).suffix or ".tmp"
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=suffix, dir=tmp_dir)
     tmp.close()
-
     logger.info("Downloading r2://%s -> %s", key, tmp.name)
-    cfg.client().download_file(cfg.bucket, key, tmp.name)
-    logger.info("Download complete: %s", tmp.name)
+    client.download_file(cfg.bucket, key, tmp.name)
     return tmp.name
 
 
 def resolve_directory(r2_prefix: str, cfg: Optional[R2Config] = None,
-                      local_dir: Optional[str] = None) -> str:
+                      local_dir: Optional[str] = None,
+                      progress: Optional[ProgressFn] = None,
+                      max_workers: Optional[int] = None) -> str:
     """
-    Download all objects under an R2 prefix to a local directory.
+    Make every object under an R2 prefix available in a local directory.
 
-    Useful when dataset patches live in R2 and you want to point
-    SpectralDataset_npy at a local folder.
+    With ``local_dir=None`` (recommended) the files go to the shared local
+    cache ``<cache_root>/<bucket>/<prefix>`` and are reused by later calls:
+    a completed download leaves a marker file, and the next call only checks
+    that the object count still matches before returning immediately.
+    Concurrent callers for the same prefix are serialised with a file lock.
 
-    Args:
-        r2_prefix: Key prefix inside the bucket (e.g. "hyperion_train_npy")
-        cfg:       R2Config (falls back to env vars)
-        local_dir: Where to put the files (defaults to a new temp dir)
+    Passing ``local_dir`` forces a (parallel, resumable) download there.
 
     Returns:
         Local directory path string
     """
     cfg = cfg or R2Config.from_env()
-    client = cfg.client()
+    prefix = r2_prefix.rstrip("/")
 
-    if local_dir is None:
-        local_dir = tempfile.mkdtemp()
-    local_dir_path = Path(local_dir)
-    local_dir_path.mkdir(parents=True, exist_ok=True)
+    if local_dir is not None:
+        download_prefix(prefix, local_dir, cfg, max_workers=max_workers, progress=progress)
+        return local_dir
 
-    # Paginate over all objects with the prefix
-    paginator = client.get_paginator("list_objects_v2")
-    downloaded = 0
-    for page in paginator.paginate(Bucket=cfg.bucket, Prefix=r2_prefix):
-        for obj in page.get("Contents", []):
-            key = obj["Key"]
-            # Preserve sub-directory structure relative to the prefix
-            relative = key[len(r2_prefix):].lstrip("/")
-            local_file = local_dir_path / relative
-            local_file.parent.mkdir(parents=True, exist_ok=True)
-            logger.info("Downloading r2://%s -> %s", key, local_file)
-            client.download_file(cfg.bucket, key, str(local_file))
-            downloaded += 1
-
-    logger.info("Downloaded %d files from r2://%s to %s", downloaded, r2_prefix, local_dir)
-    return local_dir
+    target = cache_root() / cfg.bucket / prefix
+    marker = target / _COMPLETE_MARKER
+    with _file_lock(target.parent / f".{target.name}.lock"):
+        if marker.is_file():
+            try:
+                meta = json.loads(marker.read_text())
+                n_local = sum(1 for p in target.rglob("*")
+                              if p.is_file() and not p.name.startswith(".") and not p.name.endswith(".part"))
+                if n_local == meta.get("files"):
+                    logger.info("Cache hit r2://%s -> %s (%d files)", prefix, target, n_local)
+                    if progress:
+                        progress(n_local, n_local, int(meta.get("bytes", 0)))
+                    return str(target)
+            except (ValueError, OSError):
+                pass
+            marker.unlink(missing_ok=True)
+        n_files, n_bytes = download_prefix(prefix, str(target), cfg,
+                                           max_workers=max_workers, progress=progress)
+        marker.write_text(json.dumps({"prefix": prefix, "bucket": cfg.bucket,
+                                      "files": n_files, "bytes": n_bytes,
+                                      "completed_at": time.time()}))
+    return str(target)
 
 
 # ---------------------------------------------------------------------------

@@ -83,9 +83,11 @@ def _resolve_dir(path: Optional[str], cfg: R2Config, tmp: Path,
         return None
     if path.startswith("r2://"):
         key = path[len("r2://"):]
-        local = str(tmp / label)
-        print(f"[R2] Downloading r2://{key} -> {local}")
-        return resolve_directory(key, cfg=cfg, local_dir=local)
+        print(f"[R2] Resolving r2://{key} (parallel download, local cache)")
+        return resolve_directory(
+            key, cfg=cfg,
+            progress=lambda d, t, b: print(f"[R2]   {key}: {d}/{t} files, {b / 1e6:.0f} MB", flush=True),
+        )
     return path
 
 
@@ -295,7 +297,7 @@ Examples (local paths):
     out_grp = train_p.add_argument_group("output")
     out_grp.add_argument("--output-dir", default="./outputs")
     out_grp.add_argument("--checkpoint-every", type=int, default=1, metavar="N")
-    out_grp.add_argument("--device", choices=["cuda", "cpu"], default=None)
+    out_grp.add_argument("--device", choices=["cuda", "mps", "cpu"], default=None)
 
     _add_r2_args(train_p)
     train_p.set_defaults(func=train_command)
@@ -320,7 +322,7 @@ Examples (local paths):
     rec_p.add_argument("--encoder-channels", type=parse_encoder_channels, default=[150, 100, 75],
                        metavar="A,B,C",
                        help="Must match the trained model (default: 150,100,75)")
-    rec_p.add_argument("--device", choices=["cuda", "cpu"], default=None)
+    rec_p.add_argument("--device", choices=["cuda", "mps", "cpu"], default=None)
 
     _add_r2_args(rec_p)
     rec_p.set_defaults(func=reconstruct_command)

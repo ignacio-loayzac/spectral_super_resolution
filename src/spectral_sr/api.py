@@ -18,6 +18,7 @@ Usage:
 from __future__ import annotations
 
 import logging
+import threading
 import traceback
 import uuid
 from datetime import datetime, timezone
@@ -37,6 +38,7 @@ from .inference import SpectralReconstructor
 from .storage import R2Config, list_experiments, resolve_directory, resolve_path
 from .storage import upload_directory, upload_json
 from .train import Trainer
+from .device import default_device
 
 logging.basicConfig(level=logging.INFO,
                     format="%(asctime)s [%(levelname)s] %(name)s – %(message)s")
@@ -100,6 +102,8 @@ def _new_job(kind: str, request_body: dict) -> dict:
         "r2_keys": [],
         "error": None,
         "metrics": None,
+        "phase": "queued",
+        "progress": None,
     }
     _jobs[job_id] = job
     return job
@@ -227,33 +231,53 @@ class JobStatusResponse(BaseModel):
     r2_keys: List[str]
     error: Optional[str]
     metrics: Optional[Dict[str, Any]]
+    phase: Optional[str] = None
+    progress: Optional[Dict[str, Any]] = None
+    started_at: Optional[str] = None
+    finished_at: Optional[str] = None
 
 
 # ---------------------------------------------------------------------------
 # Background worker helpers
 # ---------------------------------------------------------------------------
 
-def _resolve_dir(path: Optional[str], cfg: R2Config,
-                 job_tmp: Path, label: str) -> Optional[str]:
-    """Resolve a local path or r2:// prefix to a usable local directory."""
+# GPU jobs run one at a time per process: extra submissions wait in "queued".
+_job_lock = threading.Lock()
+
+
+def _now() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _download_progress(job_id: str, label: str):
+    """Build a storage progress callback that mirrors download state into the job."""
+    def _cb(done: int, total: int, nbytes: int):
+        _update_job(job_id, phase=f"downloading:{label}",
+                    progress={"files_done": done, "files_total": total,
+                              "mb_done": round(nbytes / 1e6, 1)})
+    return _cb
+
+
+def _resolve_dir(path: Optional[str], cfg: R2Config, job_id: str,
+                 label: str) -> Optional[str]:
+    """Resolve a local path or r2:// prefix to a local directory (shared cache)."""
     if path is None:
         return None
     if not path.startswith("r2://"):
         return path
     key_prefix = path[len("r2://"):]
-    local = str(job_tmp / label)
-    logger.info("Downloading R2 directory r2://%s -> %s", key_prefix, local)
-    return resolve_directory(key_prefix, cfg=cfg, local_dir=local)
+    logger.info("Resolving R2 directory r2://%s (job %s)", key_prefix, job_id)
+    return resolve_directory(key_prefix, cfg=cfg, progress=_download_progress(job_id, label))
 
 
-def _resolve_file(path: Optional[str], cfg: R2Config,
-                  job_tmp: Path) -> Optional[str]:
-    """Resolve a local path or r2://key to a usable local file path."""
+def _resolve_file(path: Optional[str], cfg: R2Config, job_id: str) -> Optional[str]:
+    """Resolve a local path or r2://key to a local file (shared cache)."""
     if path is None:
         return None
     if not path.startswith("r2://"):
         return path
-    return resolve_path(path, cfg=cfg, tmp_dir=str(job_tmp))
+    _update_job(job_id, phase=f"downloading:{Path(path).name}")
+    return resolve_path(path, cfg=cfg)
 
 
 # ---------------------------------------------------------------------------
@@ -261,8 +285,13 @@ def _resolve_file(path: Optional[str], cfg: R2Config,
 # ---------------------------------------------------------------------------
 
 def _run_training(job_id: str, req: TrainRequest):
+    with _job_lock:
+        _run_training_locked(job_id, req)
+
+
+def _run_training_locked(job_id: str, req: TrainRequest):
     try:
-        _update_job(job_id, status="running")
+        _update_job(job_id, status="running", phase="starting", started_at=_now())
 
         cfg = req.r2.to_r2config() if req.r2 else R2Config.from_env()
         upload_cfg = cfg.for_experiments()
@@ -278,11 +307,11 @@ def _run_training(job_id: str, req: TrainRequest):
         upload_json(_safe_request_dump(req), f"{r2_prefix}/config.json", cfg=upload_cfg)
 
         # Resolve r2:// paths to local directories/files
-        ae_local = _resolve_file(req.ae_checkpoint, cfg, job_tmp)
-        hyp_train = _resolve_dir(req.hyperion_train_dir, cfg, job_tmp, "hyperion_train")
-        hyp_val = _resolve_dir(req.hyperion_val_dir, cfg, job_tmp, "hyperion_val")
-        ls_train = _resolve_dir(req.landsat_train_dir, cfg, job_tmp, "landsat_train")
-        ls_val = _resolve_dir(req.landsat_val_dir, cfg, job_tmp, "landsat_val")
+        ae_local = _resolve_file(req.ae_checkpoint, cfg, job_id)
+        hyp_train = _resolve_dir(req.hyperion_train_dir, cfg, job_id, "hyperion_train")
+        hyp_val = _resolve_dir(req.hyperion_val_dir, cfg, job_id, "hyperion_val")
+        ls_train = _resolve_dir(req.landsat_train_dir, cfg, job_id, "landsat_train")
+        ls_val = _resolve_dir(req.landsat_val_dir, cfg, job_id, "landsat_val")
 
         model_config = ModelConfig(
             model_type=req.model,
@@ -314,15 +343,27 @@ def _run_training(job_id: str, req: TrainRequest):
         )
 
         trainer = Trainer(model_config, data_config, train_config)
+
+        def _on_epoch(epoch: int, total: int, history: Dict[str, Any]):
+            _update_job(job_id, phase=f"training:epoch {epoch}/{total}",
+                        progress={"epoch": epoch, "epochs": total,
+                                  "last_epoch_seconds": history["epoch_seconds"][-1]},
+                        metrics=history)
+
+        trainer.epoch_callback = _on_epoch
+        _update_job(job_id, phase=f"training:epoch 0/{req.epochs}", progress=None)
         trainer.train()
 
+        _update_job(job_id, phase="uploading")
         keys = upload_directory(output_dir, r2_prefix, cfg=upload_cfg)
-        _update_job(job_id, status="done", r2_keys=keys, metrics=trainer.history)
+        _update_job(job_id, status="done", phase="done", r2_keys=keys,
+                    metrics=trainer.history, finished_at=_now())
         logger.info("Training job %s done. Uploaded %d files.", job_id, len(keys))
 
     except Exception:
         logger.exception("Training job %s failed", job_id)
-        _update_job(job_id, status="failed", error=traceback.format_exc())
+        _update_job(job_id, status="failed", phase="failed", error=traceback.format_exc(),
+                    finished_at=_now())
 
 
 # ---------------------------------------------------------------------------
@@ -330,8 +371,13 @@ def _run_training(job_id: str, req: TrainRequest):
 # ---------------------------------------------------------------------------
 
 def _run_reconstruction(job_id: str, req: ReconstructRequest):
+    with _job_lock:
+        _run_reconstruction_locked(job_id, req)
+
+
+def _run_reconstruction_locked(job_id: str, req: ReconstructRequest):
     try:
-        _update_job(job_id, status="running")
+        _update_job(job_id, status="running", phase="starting", started_at=_now())
 
         cfg = req.r2.to_r2config() if req.r2 else R2Config.from_env()
         upload_cfg = cfg.for_experiments()
@@ -347,11 +393,11 @@ def _run_reconstruction(job_id: str, req: ReconstructRequest):
         upload_json(_safe_request_dump(req), f"{r2_prefix}/config.json", cfg=upload_cfg)
 
         # Resolve r2:// paths
-        ckpt_local = _resolve_file(req.checkpoint, cfg, job_tmp)
-        input_local = _resolve_dir(req.input_dir, cfg, job_tmp, "input")
-        gt_local = _resolve_dir(req.ground_truth_dir, cfg, job_tmp, "ground_truth")
-        hyp_props = _resolve_file(req.hyperion_properties_path, cfg, job_tmp)
-        ls_props = _resolve_file(req.landsat_properties_path, cfg, job_tmp)
+        ckpt_local = _resolve_file(req.checkpoint, cfg, job_id)
+        input_local = _resolve_dir(req.input_dir, cfg, job_id, "input")
+        gt_local = _resolve_dir(req.ground_truth_dir, cfg, job_id, "ground_truth")
+        hyp_props = _resolve_file(req.hyperion_properties_path, cfg, job_id)
+        ls_props = _resolve_file(req.landsat_properties_path, cfg, job_id)
 
         model_config = ModelConfig(
             model_type=req.model,
@@ -378,7 +424,7 @@ def _run_reconstruction(job_id: str, req: ReconstructRequest):
                     load_hyperion_wavelengths,
                     load_landsat_wavelengths,
                 )
-                device = "cuda" if torch.cuda.is_available() else "cpu"
+                device = default_device()
                 generate_reconstruction_plots(
                     model=reconstructor.model,
                     landsat_dir=input_local,
@@ -400,12 +446,13 @@ def _run_reconstruction(job_id: str, req: ReconstructRequest):
             upload_json(metrics, f"{r2_prefix}/metrics.json", cfg=upload_cfg)
             keys.append(f"{r2_prefix}/metrics.json")
 
-        _update_job(job_id, status="done", r2_keys=keys, metrics=metrics)
+        _update_job(job_id, status="done", phase="done", r2_keys=keys, metrics=metrics, finished_at=_now())
         logger.info("Reconstruction job %s done. Uploaded %d files.", job_id, len(keys))
 
     except Exception:
         logger.exception("Reconstruction job %s failed", job_id)
-        _update_job(job_id, status="failed", error=traceback.format_exc())
+        _update_job(job_id, status="failed", phase="failed", error=traceback.format_exc(),
+                    finished_at=_now())
 
 
 # ---------------------------------------------------------------------------

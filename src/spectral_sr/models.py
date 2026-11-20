@@ -37,6 +37,9 @@ class Hourglass(nn.Module):
         # Skip connections
         self.skip2 = nn.Conv2d(ub_out_channels, mb_out_channels, kernel_size=1)
         self.skip1 = nn.Conv2d(mb_out_channels, lb_out_channels, kernel_size=1)
+        # Accept checkpoints saved by legacy/modelos.py (2020), where each skip
+        # connection was wrapped in nn.Sequential ("skip1.0.weight" vs "skip1.weight").
+        self._register_load_state_dict_pre_hook(self._remap_legacy_keys)
         
         # Decoder
         self.decoder_lowerBlock = self._conv_block_single(lb_out_channels, lb_out_channels)
@@ -46,6 +49,14 @@ class Hourglass(nn.Module):
         self.decoder_upperBlock = self._conv_block(mb_out_channels, out_channels, 
                                                     stride2=1, upsample=False, final_layer=True)
     
+    @staticmethod
+    def _remap_legacy_keys(state_dict, prefix, *args, **kwargs):
+        for name in ("skip1", "skip2"):
+            for param in ("weight", "bias"):
+                old = f"{prefix}{name}.0.{param}"
+                if old in state_dict:
+                    state_dict[f"{prefix}{name}.{param}"] = state_dict.pop(old)
+
     def _conv_block(self, in_ch: int, out_ch: int, kernel_size: int = 3, 
                     stride1: int = 1, stride2: int = 2, padding: int = 1,
                     upsample: bool = False, upsample_ratio: int = 2, 

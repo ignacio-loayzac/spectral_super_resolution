@@ -12,6 +12,7 @@ from torch.utils.data import DataLoader
 from .config import ModelConfig, InferenceConfig
 from .metrics import SSIM, SAM, MSE, RMSE
 from .models import Hourglass, Koundinya2D_CNN
+from .device import default_device
 
 
 class SpectralReconstructor:
@@ -31,7 +32,7 @@ class SpectralReconstructor:
         
         # Set device
         if inference_config.device is None:
-            self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+            self.device = torch.device(default_device())
         else:
             self.device = torch.device(inference_config.device)
         

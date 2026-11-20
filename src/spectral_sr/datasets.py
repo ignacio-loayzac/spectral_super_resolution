@@ -9,6 +9,19 @@ import torch
 from torch.utils.data import Dataset
 
 
+def _augment_pair(*tensors: torch.Tensor):
+    """Apply the same random dihedral transform (rot90 x flip, 8 options) to (C, H, W) tensors."""
+    k = int(torch.randint(0, 4, (1,)))
+    flip = bool(torch.randint(0, 2, (1,)))
+    out = []
+    for t in tensors:
+        t = torch.rot90(t, k, dims=(1, 2))
+        if flip:
+            t = torch.flip(t, dims=(2,))
+        out.append(t.contiguous())
+    return out
+
+
 class SpectralDataset_npy(Dataset):
     """
     Dataset for loading paired multispectral and hyperspectral image patches.
@@ -26,8 +39,13 @@ class SpectralDataset_npy(Dataset):
     def __init__(self, 
                  root_dir_multi: str, 
                  root_dir_hyp: str,
-                 transforms: Optional[object] = None):
+                 transforms: Optional[object] = None,
+                 scale: float = 1.0,
+                 augment: bool = False):
         self.transforms = transforms
+        # Values are divided by ``scale`` (10000 maps the stored reflectance x1e4 to [0, ~1])
+        self.scale = float(scale)
+        self.augment = augment
         
         # Use pathlib for cross-platform compatibility
         multi_path = Path(root_dir_multi)
@@ -68,6 +86,11 @@ class SpectralDataset_npy(Dataset):
         # Permute from (H, W, C) to (C, H, W)
         img_x = img_x.permute(2, 0, 1)
         img_y = img_y.permute(2, 0, 1)
+        if self.scale != 1.0:
+            img_x = img_x / self.scale
+            img_y = img_y / self.scale
+        if self.augment:
+            img_x, img_y = _augment_pair(img_x, img_y)
         
         if self.transforms is not None:
             img_x = self.transforms(img_x)
@@ -91,8 +114,11 @@ class HyperspectralDataset_npy(Dataset):
         transforms: Optional transforms to apply
     """
     
-    def __init__(self, root_dir: str, transforms: Optional[object] = None):
+    def __init__(self, root_dir: str, transforms: Optional[object] = None,
+                 scale: float = 1.0, augment: bool = False):
         self.transforms = transforms
+        self.scale = float(scale)
+        self.augment = augment
         
         # Use pathlib for cross-platform compatibility
         root_path = Path(root_dir)
@@ -120,6 +146,10 @@ class HyperspectralDataset_npy(Dataset):
         
         # Permute from (H, W, C) to (C, H, W)
         img = img.permute(2, 0, 1)
+        if self.scale != 1.0:
+            img = img / self.scale
+        if self.augment:
+            (img,) = _augment_pair(img)
         
         if self.transforms is not None:
             img = self.transforms(img)

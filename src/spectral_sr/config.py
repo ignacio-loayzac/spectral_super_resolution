@@ -21,6 +21,7 @@ class ModelConfig:
     in_channels: int = 7
     out_channels: int = 175
     encoder_channels: List[int] = field(default_factory=lambda: [150, 100, 75])
+    kernel_mode: Literal['spatial', 'spectral'] = 'spatial'
     
     def __post_init__(self):
         """Validate configuration."""
@@ -60,6 +61,8 @@ class DataConfig:
     landsat_test_dir: Optional[str] = None
     batch_size: int = 32
     num_workers: int = 4
+    data_scale: float = 1.0      # divide stored values by this (10000 -> reflectance)
+    augment: bool = False        # random rot90/flip on the training set
     
     def __post_init__(self):
         """Validate paths exist."""
@@ -92,7 +95,7 @@ class TrainConfig:
         seed: Random seed for reproducibility
     """
     mode: Literal['autoencoder', 'sr'] = 'sr'
-    loss_type: Literal['mse', 'perceptual'] = 'mse'
+    loss_type: Literal['mse', 'l1', 'l1_sam', 'perceptual'] = 'mse'
     ae_checkpoint: Optional[str] = None
     epochs: int = 5
     lr: float = 1e-3
@@ -103,6 +106,18 @@ class TrainConfig:
     checkpoint_every: int = 1
     device: Optional[str] = None
     seed: int = 42
+    # --- BACKLOG E-M improvements ---
+    gram_mode: Literal['raw', 'correlation'] = 'raw'
+    feature_loss_coeff: float = 0.0          # perceptual content term (gamma)
+    sam_loss_coeff: float = 0.0              # used by loss_type='l1_sam' (defaults to 0.1 there)
+    consistency_coeff: float = 0.0           # spectral consistency term (lambda)
+    degradation_path: Optional[str] = None   # .npy (175x7, or 176x7 with intercept row)
+    consistency_bands: Optional[List[int]] = None  # OLI bands used by the consistency term (None = all)
+    ae_kernel_mode: Literal['spatial', 'spectral'] = 'spatial'
+    ae_input_scale: float = 1.0              # multiply AE inputs (e.g. 10000 for the 2020 AE with scaled data)
+    use_mask: bool = True                    # ignore no-data pixels in loss and metrics
+    early_stopping_patience: int = 0         # 0 disables early stopping
+    lr_scheduler: Literal['none', 'plateau'] = 'none'
     
     def __post_init__(self):
         """Validate configuration."""
@@ -111,6 +126,8 @@ class TrainConfig:
                 "ae_checkpoint is required when using perceptual loss"
             )
         
+        if self.consistency_coeff > 0 and self.degradation_path is None:
+            raise ValueError("degradation_path is required when consistency_coeff > 0")
         if self.ae_checkpoint is not None:
             ae_path = Path(self.ae_checkpoint)
             if not ae_path.exists():

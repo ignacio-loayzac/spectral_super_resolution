@@ -167,7 +167,7 @@ class TrainRequest(BaseModel):
     mode: Literal["autoencoder", "sr"] = Field(...,
         description="autoencoder: Hyperion→Hyperion | sr: Landsat→Hyperion")
     model: Literal["hourglass", "koundinya"] = Field("hourglass")
-    loss: Literal["mse", "perceptual"] = Field("mse")
+    loss: Literal["mse", "l1", "l1_sam", "perceptual"] = Field("mse")
 
     # Accepts local path OR r2://key
     ae_checkpoint: Optional[str] = Field(None,
@@ -190,9 +190,27 @@ class TrainRequest(BaseModel):
     batch_size: int = Field(32, ge=1)
     num_workers: int = Field(4, ge=0)
     content_loss_coeff: float = Field(1.0, gt=0)
-    style_loss_coeff: float = Field(1e-3, gt=0)
+    style_loss_coeff: float = Field(1e-3, ge=0)
     block_coeff: List[float] = Field([1.0, 1.0, 1.0])
     seed: int = Field(42)
+
+    # --- Method improvements (BACKLOG E-M) ---
+    kernel_mode: Literal["spatial", "spectral"] = Field("spatial",
+        description="Model kernels: spatial (3x3/5x5, 2020) or spectral (all 1x1)")
+    data_scale: float = Field(1.0, gt=0, description="Divide stored values by this (10000 -> reflectance)")
+    augment: bool = Field(False, description="Random rot90/flip on the training set")
+    use_mask: bool = Field(True, description="Ignore no-data pixels in loss and metrics")
+    early_stopping_patience: int = Field(0, ge=0)
+    lr_scheduler: Literal["none", "plateau"] = Field("none")
+    checkpoint_every: int = Field(0, ge=0, description="0 = only best and final checkpoints")
+    gram_mode: Literal["raw", "correlation"] = Field("raw")
+    feature_loss_coeff: float = Field(0.0, ge=0)
+    sam_loss_coeff: float = Field(0.0, ge=0)
+    consistency_coeff: float = Field(0.0, ge=0)
+    degradation_path: Optional[str] = Field(None, description="Local path or r2://key of the 175x7 / 176x7 matrix")
+    consistency_bands: Optional[List[int]] = Field(None, description="OLI band indices used by the consistency term")
+    ae_kernel_mode: Literal["spatial", "spectral"] = Field("spatial")
+    ae_input_scale: float = Field(1.0, gt=0)
 
     experiment_name: str = Field("experiment",
         description="Label used as the R2 output folder prefix")
@@ -318,6 +336,7 @@ def _run_training_locked(job_id: str, req: TrainRequest):
             in_channels=175 if req.mode == "autoencoder" else 7,
             out_channels=175,
             encoder_channels=req.encoder_channels,
+            kernel_mode=req.kernel_mode,
         )
         data_config = DataConfig(
             hyperion_train_dir=hyp_train,
@@ -326,7 +345,10 @@ def _run_training_locked(job_id: str, req: TrainRequest):
             landsat_val_dir=ls_val,
             batch_size=req.batch_size,
             num_workers=req.num_workers,
+            data_scale=req.data_scale,
+            augment=req.augment,
         )
+        degradation_local = _resolve_file(req.degradation_path, cfg, job_id)
         train_config = TrainConfig(
             mode=req.mode,
             loss_type=req.loss,
@@ -337,9 +359,20 @@ def _run_training_locked(job_id: str, req: TrainRequest):
             style_loss_coeff=req.style_loss_coeff,
             block_coeff=req.block_coeff,
             output_dir=str(output_dir),
-            checkpoint_every=1,
+            checkpoint_every=req.checkpoint_every,
             device=None,
             seed=req.seed,
+            gram_mode=req.gram_mode,
+            feature_loss_coeff=req.feature_loss_coeff,
+            sam_loss_coeff=req.sam_loss_coeff,
+            consistency_coeff=req.consistency_coeff,
+            degradation_path=degradation_local,
+            consistency_bands=req.consistency_bands,
+            ae_kernel_mode=req.ae_kernel_mode,
+            ae_input_scale=req.ae_input_scale,
+            use_mask=req.use_mask,
+            early_stopping_patience=req.early_stopping_patience,
+            lr_scheduler=req.lr_scheduler,
         )
 
         trainer = Trainer(model_config, data_config, train_config)

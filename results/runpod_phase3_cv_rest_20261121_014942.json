@@ -1,0 +1,193 @@
+{
+  "plan": "experiments/phase3_cv_rest.json",
+  "image": "ghcr.io/ignacio-loayzac/spectral_super_resolution:1.3.1",
+  "started_at": "2026-11-21T04:49:42.154240+00:00",
+  "jobs": [
+    {
+      "job_id": "843c6ac1-f70f-42d8-8a40-84b771b91a9b",
+      "experiment_name": "h1cv/AC/fold2",
+      "request": {
+        "mode": "sr",
+        "encoder_channels": [
+          150,
+          100,
+          75
+        ],
+        "kernel_mode": "spatial",
+        "hyperion_train_dir": "r2://hyperion_train_npy",
+        "landsat_train_dir": "r2://landsat_train_npy",
+        "hyperion_val_dir": "r2://hyperion_train_npy",
+        "landsat_val_dir": "r2://landsat_train_npy",
+        "data_scale": 10000.0,
+        "augment": true,
+        "use_mask": true,
+        "lr": 0.001,
+        "batch_size": 32,
+        "num_workers": 12,
+        "lr_scheduler": "plateau",
+        "checkpoint_every": 0,
+        "loss": "mse",
+        "content_loss_coeff": 1.0,
+        "style_loss_coeff": 0.0,
+        "model": "latent",
+        "latent_dim": 16,
+        "decoder_type": "ae",
+        "decoder_path": "r2://Models/AE_bottleneck16_scenes1-10.pt",
+        "consistency_coeff": 0.319,
+        "degradation_path": "r2://metadata/degradation_175x7.npy",
+        "consistency_bands": [
+          2,
+          4,
+          5,
+          6
+        ],
+        "seed": 42,
+        "epochs": 30,
+        "early_stopping_patience": 6,
+        "train_scenes": [
+          1,
+          2,
+          3,
+          4,
+          9,
+          10
+        ],
+        "val_scenes": [
+          7,
+          8
+        ],
+        "experiment_name": "h1cv/AC/fold2"
+      },
+      "status": "done",
+      "r2_prefix": "h1cv/AC/fold2/20261121_045319",
+      "error": "",
+      "best": {
+        "epoch": 8,
+        "val_loss": 0.003943268668081146,
+        "val_ssim": 0.7062676288187504,
+        "val_sam": 0.17360923460805078,
+        "val_mse": 0.0037232698810837385,
+        "val_rmse_reflectance": 0.0610186027460785
+      },
+      "stop_reason": "early_stopping (no improvement for 6 epochs)",
+      "epochs_run": 14,
+      "epoch_seconds": [
+        12.05,
+        10.37,
+        10.31,
+        10.16,
+        10.08,
+        10.26,
+        10.34,
+        10.6,
+        10.36,
+        10.3,
+        15.17,
+        10.45,
+        10.4,
+        10.15
+      ],
+      "started_at": "2026-11-21T04:53:19.724045+00:00",
+      "finished_at": "2026-11-21T04:57:36.162318+00:00"
+    },
+    {
+      "job_id": "770f3cae-2492-417e-a6bc-c7129bcf46cb",
+      "experiment_name": "h1cv/AC/fold3",
+      "request": {
+        "mode": "sr",
+        "encoder_channels": [
+          150,
+          100,
+          75
+        ],
+        "kernel_mode": "spatial",
+        "hyperion_train_dir": "r2://hyperion_train_npy",
+        "landsat_train_dir": "r2://landsat_train_npy",
+        "hyperion_val_dir": "r2://hyperion_train_npy",
+        "landsat_val_dir": "r2://landsat_train_npy",
+        "data_scale": 10000.0,
+        "augment": true,
+        "use_mask": true,
+        "lr": 0.001,
+        "batch_size": 32,
+        "num_workers": 12,
+        "lr_scheduler": "plateau",
+        "checkpoint_every": 0,
+        "loss": "mse",
+        "content_loss_coeff": 1.0,
+        "style_loss_coeff": 0.0,
+        "model": "latent",
+        "latent_dim": 16,
+        "decoder_type": "ae",
+        "decoder_path": "r2://Models/AE_bottleneck16_scenes1-10.pt",
+        "consistency_coeff": 0.319,
+        "degradation_path": "r2://metadata/degradation_175x7.npy",
+        "consistency_bands": [
+          2,
+          4,
+          5,
+          6
+        ],
+        "seed": 42,
+        "epochs": 30,
+        "early_stopping_patience": 6,
+        "train_scenes": [
+          1,
+          2,
+          3,
+          4,
+          7,
+          8
+        ],
+        "val_scenes": [
+          9,
+          10
+        ],
+        "experiment_name": "h1cv/AC/fold3"
+      },
+      "status": "done",
+      "r2_prefix": "h1cv/AC/fold3/20261121_045736",
+      "error": "",
+      "best": {
+        "epoch": 13,
+        "val_loss": 0.002448425170344611,
+        "val_ssim": 0.8080343087514241,
+        "val_sam": 0.15969344038502684,
+        "val_mse": 0.002023128327932311,
+        "val_rmse_reflectance": 0.04497919883604321
+      },
+      "stop_reason": "early_stopping (no improvement for 6 epochs)",
+      "epochs_run": 19,
+      "epoch_seconds": [
+        10.57,
+        11.13,
+        10.8,
+        10.67,
+        10.76,
+        11.07,
+        10.78,
+        11.0,
+        11.03,
+        10.79,
+        10.71,
+        10.71,
+        10.91,
+        10.82,
+        11.1,
+        11.04,
+        10.74,
+        10.85,
+        10.7
+      ],
+      "started_at": "2026-11-21T04:57:36.163009+00:00",
+      "finished_at": "2026-11-21T05:01:05.312992+00:00"
+    }
+  ],
+  "pod_id": "3013bb1vwm6rka",
+  "gpu": "NVIDIA RTX A5000",
+  "cloud": "SECURE",
+  "cost_per_hr": 0.27,
+  "finished_at": "2026-11-21T05:01:28.543706+00:00",
+  "wall_hours": 0.196,
+  "estimated_usd": 0.05
+}

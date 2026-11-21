@@ -1,0 +1,102 @@
+[
+  {
+    "name": "M0 ensamble",
+    "ensemble": [
+      {
+        "run": "h1final/M0/seed1/20261121_050201",
+        "checkpoint": "r2://h1final/M0/seed1/20261121_050201/checkpoint_epoch_final.pt",
+        "name": "M0 seed1"
+      },
+      {
+        "run": "h1final/M0/seed2/20261121_050352",
+        "checkpoint": "r2://h1final/M0/seed2/20261121_050352/checkpoint_epoch_final.pt",
+        "name": "M0 seed2"
+      },
+      {
+        "run": "h1final/M0/seed3/20261121_050541",
+        "checkpoint": "r2://h1final/M0/seed3/20261121_050541/checkpoint_epoch_final.pt",
+        "name": "M0 seed3"
+      }
+    ]
+  },
+  {
+    "name": "C ensamble",
+    "ensemble": [
+      {
+        "run": "h1final/C/seed1/20261121_050728",
+        "checkpoint": "r2://h1final/C/seed1/20261121_050728/checkpoint_epoch_final.pt",
+        "name": "C seed1"
+      },
+      {
+        "run": "h1final/C/seed2/20261121_051014",
+        "checkpoint": "r2://h1final/C/seed2/20261121_051014/checkpoint_epoch_final.pt",
+        "name": "C seed2"
+      },
+      {
+        "run": "h1final/C/seed3/20261121_051308",
+        "checkpoint": "r2://h1final/C/seed3/20261121_051308/checkpoint_epoch_final.pt",
+        "name": "C seed3"
+      }
+    ]
+  },
+  {
+    "name": "P ensamble",
+    "ensemble": [
+      {
+        "run": "h1final/P/seed1/20261121_051600",
+        "checkpoint": "r2://h1final/P/seed1/20261121_051600/checkpoint_epoch_final.pt",
+        "name": "P seed1"
+      },
+      {
+        "run": "h1final/P/seed2/20261121_051649",
+        "checkpoint": "r2://h1final/P/seed2/20261121_051649/checkpoint_epoch_final.pt",
+        "name": "P seed2"
+      },
+      {
+        "run": "h1final/P/seed3/20261121_051737",
+        "checkpoint": "r2://h1final/P/seed3/20261121_051737/checkpoint_epoch_final.pt",
+        "name": "P seed3"
+      }
+    ]
+  },
+  {
+    "name": "A ensamble",
+    "ensemble": [
+      {
+        "run": "h1final/A/seed1/20261121_051826",
+        "checkpoint": "r2://h1final/A/seed1/20261121_051826/checkpoint_epoch_final.pt",
+        "name": "A seed1"
+      },
+      {
+        "run": "h1final/A/seed2/20261121_052001",
+        "checkpoint": "r2://h1final/A/seed2/20261121_052001/checkpoint_epoch_final.pt",
+        "name": "A seed2"
+      },
+      {
+        "run": "h1final/A/seed3/20261121_052149",
+        "checkpoint": "r2://h1final/A/seed3/20261121_052149/checkpoint_epoch_final.pt",
+        "name": "A seed3"
+      }
+    ]
+  },
+  {
+    "name": "AC ensamble",
+    "ensemble": [
+      {
+        "run": "h1final/AC/seed1/20261121_052324",
+        "checkpoint": "r2://h1final/AC/seed1/20261121_052324/checkpoint_epoch_final.pt",
+        "name": "AC seed1"
+      },
+      {
+        "run": "h1final/AC/seed2/20261121_052532",
+        "checkpoint": "r2://h1final/AC/seed2/20261121_052532/checkpoint_epoch_final.pt",
+        "name": "AC seed2"
+      },
+      {
+        "run": "h1final/AC/seed3/20261121_052736",
+        "checkpoint": "r2://h1final/AC/seed3/20261121_052736/checkpoint_epoch_final.pt",
+        "name": "AC seed3"
+      }
+    ]
+  }
+]

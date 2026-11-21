@@ -184,7 +184,9 @@ class Trainer:
             raise ValueError(f"Unknown mode: {self.train_config.mode}")
 
         pin = self.device.type == "cuda"
-        persistent = dc.num_workers > 0
+        # persistent_workers=False: a long-lived API process runs many jobs; persistent
+        # workers of finished trainers were never reaped and exhausted /dev/shm (job hang).
+        persistent = False
         train_loader = DataLoader(train_dataset, batch_size=dc.batch_size, shuffle=True,
                                   num_workers=dc.num_workers, pin_memory=pin,
                                   persistent_workers=persistent)

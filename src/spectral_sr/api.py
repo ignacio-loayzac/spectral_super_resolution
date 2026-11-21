@@ -270,6 +270,17 @@ class JobStatusResponse(BaseModel):
 _job_lock = threading.Lock()
 
 
+def _release(trainer) -> None:
+    """Free a finished trainer's data-loader workers and GPU memory before the next job."""
+    import gc
+    for name in ("train_loader", "val_loader", "model", "loss_fn", "optimizer"):
+        if hasattr(trainer, name):
+            setattr(trainer, name, None)
+    gc.collect()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+
+
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
@@ -401,8 +412,10 @@ def _run_training_locked(job_id: str, req: TrainRequest):
 
         _update_job(job_id, phase="uploading")
         keys = upload_directory(output_dir, r2_prefix, cfg=upload_cfg)
+        history = trainer.history
+        _release(trainer)
         _update_job(job_id, status="done", phase="done", r2_keys=keys,
-                    metrics=trainer.history, finished_at=_now())
+                    metrics=history, finished_at=_now())
         logger.info("Training job %s done. Uploaded %d files.", job_id, len(keys))
 
     except Exception:

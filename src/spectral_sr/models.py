@@ -1,5 +1,6 @@
 """Neural network architectures for spectral super-resolution."""
 
+import numpy as np
 import torch
 import torch.nn as nn
 
@@ -186,3 +187,111 @@ class Koundinya2D_CNN(nn.Module):
         x = self.cnn_layers(x)
         x = x.view(x.size(0), -1)
         return x
+
+
+# ---------------------------------------------------------------------------
+# Learned spectral priors (BACKLOG H1 / H5): low-dimensional output spaces
+# ---------------------------------------------------------------------------
+
+def _pixel_mlp(dims, final_activation: bool = False) -> nn.Sequential:
+    """Per-pixel MLP built from 1x1 convolutions with ELU activations."""
+    layers = []
+    for i, (a, b) in enumerate(zip(dims[:-1], dims[1:])):
+        layers.append(nn.Conv2d(a, b, kernel_size=1))
+        if i < len(dims) - 2 or final_activation:
+            layers.append(nn.ELU(inplace=True))
+    return nn.Sequential(*layers)
+
+
+class BottleneckSpectralAE(nn.Module):
+    """Per-pixel spectral autoencoder with a true bottleneck (no skip connections).
+
+    175 -> 128 -> 64 -> k -> 64 -> 128 -> 175. Trained on Hyperion spectra only;
+    its decoder is used as a frozen spectral prior by :class:`LatentSR`.
+    Unlike :class:`Hourglass`, nothing bypasses the k-dimensional code.
+    """
+
+    HIDDEN = (128, 64)
+
+    def __init__(self, n_bands: int = 175, latent_dim: int = 16):
+        super().__init__()
+        self.n_bands, self.latent_dim = n_bands, latent_dim
+        h1, h2 = self.HIDDEN
+        self.encoder = _pixel_mlp([n_bands, h1, h2, latent_dim])
+        self.decoder = _pixel_mlp([latent_dim, h2, h1, n_bands])
+
+    def encode(self, y: torch.Tensor) -> torch.Tensor:
+        return self.encoder(y)
+
+    def decode(self, z: torch.Tensor) -> torch.Tensor:
+        return self.decoder(z)
+
+    def forward(self, y: torch.Tensor) -> torch.Tensor:
+        out = self.decode(self.encode(y))
+        return out.view(out.size(0), -1)
+
+
+class PCADecoder(nn.Module):
+    """Fixed linear decoder y = mean + z @ basis (basis: k x n_bands)."""
+
+    def __init__(self, n_bands: int = 175, latent_dim: int = 16):
+        super().__init__()
+        self.register_buffer("mean", torch.zeros(n_bands))
+        self.register_buffer("basis", torch.zeros(latent_dim, n_bands))
+
+    @classmethod
+    def from_file(cls, path: str) -> "PCADecoder":
+        data = np.load(path)
+        mean, basis = data["mean"], data["basis"]
+        dec = cls(n_bands=basis.shape[1], latent_dim=basis.shape[0])
+        dec.mean.copy_(torch.from_numpy(mean).float())
+        dec.basis.copy_(torch.from_numpy(basis).float())
+        return dec
+
+    def forward(self, z: torch.Tensor) -> torch.Tensor:
+        return torch.einsum("bkhw,kc->bchw", z, self.basis) + self.mean.view(1, -1, 1, 1)
+
+
+class LatentSR(nn.Module):
+    """Multispectral -> latent code (generator) -> hyperspectral (frozen decoder).
+
+    The generator is the same Hourglass used elsewhere, with ``latent_dim``
+    output channels. The decoder is either the decoder of a
+    :class:`BottleneckSpectralAE` (``decoder_type="ae"``) or a
+    :class:`PCADecoder` (``decoder_type="pca"``); it is frozen, so the output
+    is constrained to the learned spectral manifold / subspace.
+    Output is flattened like :class:`Hourglass` for the training loop.
+    """
+
+    def __init__(self, in_channels: int, out_channels: int, encoder_channels, latent_dim: int = 16,
+                 decoder_type: str = "ae", decoder_path: str = None, kernel_mode: str = "spatial",
+                 freeze_decoder: bool = True):
+        super().__init__()
+        if decoder_type not in ("ae", "pca"):
+            raise ValueError(f"decoder_type must be 'ae' or 'pca', got {decoder_type}")
+        self.latent_dim, self.decoder_type, self.out_channels = latent_dim, decoder_type, out_channels
+        self.generator = Hourglass(in_channels, latent_dim, encoder_channels[0], encoder_channels[1],
+                                   encoder_channels[2], kernel_mode=kernel_mode)
+        if decoder_type == "ae":
+            ae = BottleneckSpectralAE(out_channels, latent_dim)
+            if decoder_path:
+                ae.load_state_dict(torch.load(decoder_path, map_location="cpu"))
+            self.decoder = ae.decoder
+        else:
+            self.decoder = PCADecoder.from_file(decoder_path) if decoder_path else PCADecoder(out_channels, latent_dim)
+        if freeze_decoder:
+            for p in self.decoder.parameters():
+                p.requires_grad_(False)
+        self.freeze_decoder = freeze_decoder
+
+    def train(self, mode: bool = True):
+        super().train(mode)
+        if self.freeze_decoder:
+            self.decoder.eval()
+        return self
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        b, _, h, w = x.shape
+        z = self.generator(x).view(b, self.latent_dim, h, w)
+        y = self.decoder(z)
+        return y.reshape(b, -1)

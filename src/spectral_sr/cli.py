@@ -150,6 +150,9 @@ def train_command(args):
             out_channels=175,
             encoder_channels=args.encoder_channels,
             kernel_mode=args.kernel_mode,
+            latent_dim=args.latent_dim,
+            decoder_type=args.decoder_type,
+            decoder_path=_resolve_file(args.decoder_path, cfg, tmp),
         )
         data_config = DataConfig(
             hyperion_train_dir=hyp_train,
@@ -160,6 +163,8 @@ def train_command(args):
             num_workers=args.num_workers,
             data_scale=args.data_scale,
             augment=args.augment,
+            train_scenes=args.train_scenes,
+            val_scenes=args.val_scenes,
         )
         degradation_local = _resolve_file(args.degradation_path, cfg, tmp)
         train_config = TrainConfig(
@@ -283,7 +288,7 @@ Examples (local paths):
 
     train_p.add_argument("--mode", required=True, choices=["autoencoder", "sr"],
                          help="autoencoder: Hyperion→Hyperion | sr: Landsat→Hyperion")
-    train_p.add_argument("--model", required=True, choices=["hourglass", "koundinya"],
+    train_p.add_argument("--model", required=True, choices=["hourglass", "koundinya", "latent", "bottleneck_ae"],
                          help="Model architecture")
     train_p.add_argument("--loss", default="mse", choices=["mse", "l1", "l1_sam", "perceptual"])
     train_p.add_argument("--ae-checkpoint", default=None,
@@ -326,6 +331,12 @@ Examples (local paths):
                      help="comma-separated OLI band indices for the consistency term, e.g. 2,4,5,6")
     imp.add_argument("--ae-kernel-mode", choices=["spatial", "spectral"], default="spatial")
     imp.add_argument("--ae-input-scale", type=float, default=1.0)
+    imp.add_argument("--latent-dim", type=int, default=16)
+    imp.add_argument("--decoder-type", choices=["ae", "pca"], default="ae")
+    imp.add_argument("--decoder-path", default=None, help="local or r2:// AE .pt / PCA .npz")
+    _ints = lambda s: [int(v) for v in s.split(",")]
+    imp.add_argument("--train-scenes", type=_ints, default=None, help="e.g. 1,3,4")
+    imp.add_argument("--val-scenes", type=_ints, default=None)
 
     out_grp = train_p.add_argument_group("output")
     out_grp.add_argument("--output-dir", default="./outputs")

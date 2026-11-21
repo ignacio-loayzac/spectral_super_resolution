@@ -166,7 +166,7 @@ class TrainRequest(BaseModel):
     # --- Training parameters ---
     mode: Literal["autoencoder", "sr"] = Field(...,
         description="autoencoder: Hyperion→Hyperion | sr: Landsat→Hyperion")
-    model: Literal["hourglass", "koundinya"] = Field("hourglass")
+    model: Literal["hourglass", "koundinya", "latent", "bottleneck_ae"] = Field("hourglass")
     loss: Literal["mse", "l1", "l1_sam", "perceptual"] = Field("mse")
 
     # Accepts local path OR r2://key
@@ -211,6 +211,13 @@ class TrainRequest(BaseModel):
     consistency_bands: Optional[List[int]] = Field(None, description="OLI band indices used by the consistency term")
     ae_kernel_mode: Literal["spatial", "spectral"] = Field("spatial")
     ae_input_scale: float = Field(1.0, gt=0)
+
+    # --- Learned spectral priors (H1/H5) and scene-level cross-validation ---
+    latent_dim: int = Field(16, ge=1)
+    decoder_type: Literal["ae", "pca"] = Field("ae")
+    decoder_path: Optional[str] = Field(None, description="Local path or r2://key of the AE (.pt) / PCA basis (.npz)")
+    train_scenes: Optional[List[int]] = Field(None, description="Keep only tiles of these scenes for training")
+    val_scenes: Optional[List[int]] = Field(None, description="Keep only tiles of these scenes for validation")
 
     experiment_name: str = Field("experiment",
         description="Label used as the R2 output folder prefix")
@@ -337,6 +344,9 @@ def _run_training_locked(job_id: str, req: TrainRequest):
             out_channels=175,
             encoder_channels=req.encoder_channels,
             kernel_mode=req.kernel_mode,
+            latent_dim=req.latent_dim,
+            decoder_type=req.decoder_type,
+            decoder_path=_resolve_file(req.decoder_path, cfg, job_id),
         )
         data_config = DataConfig(
             hyperion_train_dir=hyp_train,
@@ -347,6 +357,8 @@ def _run_training_locked(job_id: str, req: TrainRequest):
             num_workers=req.num_workers,
             data_scale=req.data_scale,
             augment=req.augment,
+            train_scenes=req.train_scenes,
+            val_scenes=req.val_scenes,
         )
         degradation_local = _resolve_file(req.degradation_path, cfg, job_id)
         train_config = TrainConfig(

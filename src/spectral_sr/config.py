@@ -17,11 +17,15 @@ class ModelConfig:
         encoder_channels: List of encoder output channels [upper, middle, lower]
                          E.g., [150, 100, 75] or [90, 45, 10]
     """
-    model_type: Literal['hourglass', 'koundinya'] = 'hourglass'
+    model_type: Literal['hourglass', 'koundinya', 'latent', 'bottleneck_ae'] = 'hourglass'
     in_channels: int = 7
     out_channels: int = 175
     encoder_channels: List[int] = field(default_factory=lambda: [150, 100, 75])
     kernel_mode: Literal['spatial', 'spectral'] = 'spatial'
+    # 'latent' (generator -> k-dim code -> frozen decoder) and 'bottleneck_ae'
+    latent_dim: int = 16
+    decoder_type: Literal['ae', 'pca'] = 'ae'
+    decoder_path: Optional[str] = None   # bottleneck AE state_dict (.pt) or PCA basis (.npz)
     
     def __post_init__(self):
         """Validate configuration."""
@@ -31,7 +35,9 @@ class ModelConfig:
                     "Koundinya2D_CNN only supports 7->175 channels (fixed architecture)"
                 )
         
-        if self.model_type == 'hourglass':
+        if self.model_type == 'latent' and self.decoder_path is None:
+            raise ValueError("decoder_path is required for model_type='latent'")
+        if self.model_type in ('hourglass', 'latent'):
             if len(self.encoder_channels) != 3:
                 raise ValueError(
                     f"encoder_channels must have exactly 3 values, got {len(self.encoder_channels)}"
@@ -63,6 +69,8 @@ class DataConfig:
     num_workers: int = 4
     data_scale: float = 1.0      # divide stored values by this (10000 -> reflectance)
     augment: bool = False        # random rot90/flip on the training set
+    train_scenes: Optional[List[int]] = None  # keep only tiles of these scenes (file prefix "<scene>_")
+    val_scenes: Optional[List[int]] = None
     
     def __post_init__(self):
         """Validate paths exist."""

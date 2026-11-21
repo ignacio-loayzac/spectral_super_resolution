@@ -40,4 +40,4 @@
 
 ## Desviaciones
 
-*(ninguna al momento del registro)*
+- **2026-11-21, aclaración de implementación (antes de entrenar cualquier brazo):** (1) todos los brazos usan `ReduceLROnPlateau`, igual que en E-M; en el entrenamiento final, el scheduler monitorea la escena 2, que forma parte del entrenamiento (no hay validación independiente), y se evalúa el checkpoint **final** (época E), no el "mejor". (2) El AE con cuello de botella (175→128→64→16→64→128→175, 1×1) se entrena con las escenas 1 y 3–10 y usa la escena 2 para la parada temprana; la base PCA usa las escenas 1–10 (256 píxeles válidos por tile). Ninguno toca las escenas de test 11–15.

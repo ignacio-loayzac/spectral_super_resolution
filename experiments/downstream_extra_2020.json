@@ -1,0 +1,1 @@
+[{"name": "2020 UNet+MSE ref", "checkpoint": "r2://Models/hg_SR_150_100_75.pt", "model": "hourglass"}]

@@ -17,7 +17,7 @@ from .config import ModelConfig, DataConfig, TrainConfig
 from .datasets import SpectralDataset_npy, HyperspectralDataset_npy
 from .losses import SpectralSRLoss, masked_mse, masked_sam, valid_pixel_mask
 from .metrics import SSIM
-from .models import Hourglass, Koundinya2D_CNN
+from .models import BottleneckSpectralAE, Hourglass, Koundinya2D_CNN, LatentSR
 from .device import default_device
 
 
@@ -110,6 +110,12 @@ class Trainer:
                                     self.model_config.encoder_channels, self.model_config.kernel_mode)
         elif self.model_config.model_type == 'koundinya':
             model = Koundinya2D_CNN()
+        elif self.model_config.model_type == 'latent':
+            mc = self.model_config
+            model = LatentSR(mc.in_channels, mc.out_channels, mc.encoder_channels, latent_dim=mc.latent_dim,
+                             decoder_type=mc.decoder_type, decoder_path=mc.decoder_path, kernel_mode=mc.kernel_mode)
+        elif self.model_config.model_type == 'bottleneck_ae':
+            model = BottleneckSpectralAE(self.model_config.out_channels, self.model_config.latent_dim)
         else:
             raise ValueError(f"Unknown model type: {self.model_config.model_type}")
         print(f"Created {self.model_config.model_type} model "
@@ -163,15 +169,17 @@ class Trainer:
         dc = self.data_config
         if self.train_config.mode == 'autoencoder':
             train_dataset = HyperspectralDataset_npy(dc.hyperion_train_dir, scale=dc.data_scale,
-                                                     augment=dc.augment)
-            val_dataset = HyperspectralDataset_npy(dc.hyperion_val_dir, scale=dc.data_scale)
+                                                     augment=dc.augment, scenes=dc.train_scenes)
+            val_dataset = HyperspectralDataset_npy(dc.hyperion_val_dir, scale=dc.data_scale,
+                                                   scenes=dc.val_scenes)
         elif self.train_config.mode == 'sr':
             if dc.landsat_train_dir is None or dc.landsat_val_dir is None:
                 raise ValueError("landsat_train_dir and landsat_val_dir are required for SR mode")
             train_dataset = SpectralDataset_npy(dc.landsat_train_dir, dc.hyperion_train_dir,
-                                                scale=dc.data_scale, augment=dc.augment)
+                                                scale=dc.data_scale, augment=dc.augment,
+                                                scenes=dc.train_scenes)
             val_dataset = SpectralDataset_npy(dc.landsat_val_dir, dc.hyperion_val_dir,
-                                              scale=dc.data_scale)
+                                              scale=dc.data_scale, scenes=dc.val_scenes)
         else:
             raise ValueError(f"Unknown mode: {self.train_config.mode}")
 

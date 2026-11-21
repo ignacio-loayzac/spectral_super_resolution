@@ -39,7 +39,7 @@ from spectral_sr.datasets import SpectralDataset_npy
 from spectral_sr.device import default_device
 from spectral_sr.losses import spectral_angle, valid_pixel_mask
 from spectral_sr.metrics import SSIM
-from spectral_sr.models import Hourglass, Koundinya2D_CNN
+from spectral_sr.models import Hourglass, Koundinya2D_CNN, LatentSR
 from spectral_sr.storage import R2Config, resolve_directory, resolve_path
 
 DEFAULT_RUNS = [
@@ -63,6 +63,8 @@ def resolve_spec(spec: dict) -> dict:
         spec.setdefault("kernel_mode", meta["model"].get("kernel_mode", "spatial"))
         spec.setdefault("encoder_channels", meta["model"].get("encoder_channels", [150, 100, 75]))
         spec.setdefault("data_scale", meta.get("data_scale", 1.0))
+        spec.setdefault("latent_dim", meta["model"].get("latent_dim", 16))
+        spec.setdefault("decoder_type", meta["model"].get("decoder_type", "ae"))
         spec["_bucket"] = exp
     spec.setdefault("kernel_mode", "spatial")
     spec.setdefault("encoder_channels", [150, 100, 75])
@@ -73,6 +75,9 @@ def resolve_spec(spec: dict) -> dict:
 def build(spec: dict) -> torch.nn.Module:
     if spec["model"] == "koundinya":
         return Koundinya2D_CNN()
+    if spec["model"] == "latent":  # decoder weights/buffers come from the checkpoint
+        return LatentSR(7, 175, spec["encoder_channels"], latent_dim=spec["latent_dim"],
+                        decoder_type=spec["decoder_type"], decoder_path=None, kernel_mode=spec["kernel_mode"])
     ec = spec["encoder_channels"]
     return Hourglass(7, 175, ec[0], ec[1], ec[2], kernel_mode=spec["kernel_mode"])
 

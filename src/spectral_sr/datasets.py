@@ -9,6 +9,14 @@ import torch
 from torch.utils.data import Dataset
 
 
+def _filter_scenes(paths, scenes):
+    """Keep tiles whose file name starts with '<scene>_' for a scene in ``scenes`` (None = all)."""
+    if scenes is None:
+        return list(paths)
+    keep = {int(s) for s in scenes}
+    return [p for p in paths if p.name.split("_", 1)[0].isdigit() and int(p.name.split("_", 1)[0]) in keep]
+
+
 def _augment_pair(*tensors: torch.Tensor):
     """Apply the same random dihedral transform (rot90 x flip, 8 options) to (C, H, W) tensors."""
     k = int(torch.randint(0, 4, (1,)))
@@ -41,7 +49,8 @@ class SpectralDataset_npy(Dataset):
                  root_dir_hyp: str,
                  transforms: Optional[object] = None,
                  scale: float = 1.0,
-                 augment: bool = False):
+                 augment: bool = False,
+                 scenes: Optional[list] = None):
         self.transforms = transforms
         # Values are divided by ``scale`` (10000 maps the stored reflectance x1e4 to [0, ~1])
         self.scale = float(scale)
@@ -52,8 +61,10 @@ class SpectralDataset_npy(Dataset):
         hyp_path = Path(root_dir_hyp)
         
         # Get sorted lists of .npy files
-        self.msi_path_list = sorted(list(multi_path.glob('*.npy')))
-        self.hsi_path_list = sorted(list(hyp_path.glob('*.npy')))
+        self.msi_path_list = _filter_scenes(sorted(multi_path.glob('*.npy')), scenes)
+        self.hsi_path_list = _filter_scenes(sorted(hyp_path.glob('*.npy')), scenes)
+        if [p.name for p in self.msi_path_list] != [p.name for p in self.hsi_path_list]:
+            raise ValueError("multispectral and hyperspectral tile names do not match")
         
         if len(self.msi_path_list) != len(self.hsi_path_list):
             raise ValueError(
@@ -115,7 +126,7 @@ class HyperspectralDataset_npy(Dataset):
     """
     
     def __init__(self, root_dir: str, transforms: Optional[object] = None,
-                 scale: float = 1.0, augment: bool = False):
+                 scale: float = 1.0, augment: bool = False, scenes: Optional[list] = None):
         self.transforms = transforms
         self.scale = float(scale)
         self.augment = augment
@@ -124,7 +135,7 @@ class HyperspectralDataset_npy(Dataset):
         root_path = Path(root_dir)
         
         # Get sorted list of .npy files
-        self.hsi_path_list = sorted(list(root_path.glob('*.npy')))
+        self.hsi_path_list = _filter_scenes(sorted(root_path.glob('*.npy')), scenes)
         self.data_len = len(self.hsi_path_list)
         
         if self.data_len == 0:

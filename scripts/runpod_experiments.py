@@ -79,6 +79,8 @@ def main():
     ap.add_argument("--disk-gb", type=int, default=80)
     ap.add_argument("--attach", default=None, help="reuse an already running pod id instead of creating one")
     ap.add_argument("--cost-per-hr", type=float, default=None, help="price of the attached pod (USD/h)")
+    ap.add_argument("--keep-pod", action="store_true",
+                    help="do not delete the pod when ALL jobs finished normally (it is still deleted on errors/budget)")
     args = ap.parse_args()
     load_env()
     plan = json.loads(Path(args.plan).read_text())
@@ -90,6 +92,7 @@ def main():
     out = Path("results") / f"runpod_{Path(args.plan).stem}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
     out.parent.mkdir(exist_ok=True)
     pod_id, cost_hr, t_start = None, None, time.time()
+    finished_ok = False
     try:
         if args.attach:
             pod_id, cost_hr = args.attach, float(args.cost_per_hr or 0)
@@ -169,8 +172,11 @@ def main():
             if spent() > args.max_usd:
                 log(f"BUDGET LIMIT {args.max_usd} USD reached: stopping with {len(pending)} jobs unfinished")
                 break
+        finished_ok = not pending
     finally:
-        if pod_id:
+        if pod_id and args.keep_pod and finished_ok:
+            log(f"pod {pod_id} KEPT running (--keep-pod): attach with --attach {pod_id} --cost-per-hr {cost_hr}")
+        elif pod_id:
             r = rp("pod", "delete", pod_id)
             log(f"pod {pod_id} deleted: {r}")
         record.update(finished_at=datetime.now(timezone.utc).isoformat(),

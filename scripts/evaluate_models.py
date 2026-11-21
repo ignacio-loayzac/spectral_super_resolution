@@ -82,11 +82,18 @@ def build(spec: dict) -> torch.nn.Module:
     return Hourglass(7, 175, ec[0], ec[1], ec[2], kernel_mode=spec["kernel_mode"])
 
 
-def evaluate(spec, loader, device, groups, n_boot=2000):
+def _load(spec, device):
     model = build(spec)
     ckpt = resolve_path(spec["checkpoint"], spec.get("_bucket"))
     model.load_state_dict(torch.load(ckpt, map_location="cpu"))
-    model.to(device).eval()
+    return model.to(device).eval()
+
+
+def evaluate(spec, loader, device, groups, n_boot=2000):
+    # "ensemble": list of member specs whose predictions are averaged (secondary analysis)
+    members = [resolve_spec(m) for m in spec["ensemble"]] if "ensemble" in spec else [spec]
+    models = [(_load(m, device), float(m["data_scale"])) for m in members]
+    spec = {**members[0], "name": spec["name"], "checkpoint": spec.get("checkpoint", f"ensemble of {len(members)}")}
     scale = float(spec["data_scale"])
     ssim = SSIM()
     per_tile = {"se": [], "ae": [], "ang": [], "npx": [], "ssim": []}
@@ -96,7 +103,7 @@ def evaluate(spec, loader, device, groups, n_boot=2000):
     with torch.no_grad():
         for x, y in loader:  # loader yields raw stored values (x1e4)
             x, y = x.to(device), y.to(device)
-            p = model(x / scale).reshape(y.shape) * scale
+            p = torch.stack([m(x / sc).reshape(y.shape) * sc for m, sc in models]).mean(0)
             m = valid_pixel_mask(y, x)
             pr, yr = p.float().cpu().double() / 1e4, y.float().cpu().double() / 1e4  # reflectance
             mc = m.cpu()
@@ -154,7 +161,7 @@ def main():
 
     results = []
     for spec in specs:
-        r = evaluate(resolve_spec(spec), loader, device, groups)
+        r = evaluate(spec if "ensemble" in spec else resolve_spec(spec), loader, device, groups)
         results.append(r)
         print(f"{r['name']:<40} RMSE {r['rmse']:.5f} [{r['ci95']['rmse'][0]:.5f}, {r['ci95']['rmse'][1]:.5f}] | "
               f"SAM {r['sam']:.4f} rad | SSIM {r['ssim']:.4f} | MAE {r['mae']:.5f} ({r['seconds']} s)")

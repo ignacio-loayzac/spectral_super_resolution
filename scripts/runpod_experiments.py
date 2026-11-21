@@ -58,7 +58,9 @@ def rp(*args):
 def http(method, url, body=None, timeout=30):
     req = urllib.request.Request(url, method=method, data=json.dumps(body).encode() if body else None,
                                  headers={"Authorization": f"Bearer {os.environ['SPECTRAL_RECONSTRUCTION_API_KEY']}",
-                                          "Content-Type": "application/json"})
+                                          "Content-Type": "application/json",
+                                          # the RunPod proxy (Cloudflare) answers 403 to the default Python-urllib UA
+                                          "User-Agent": "spectral-sr-runner/1.2"})
     with urllib.request.urlopen(req, timeout=timeout) as r:
         return json.loads(r.read())
 
@@ -75,6 +77,8 @@ def main():
     ap.add_argument("--max-usd", type=float, required=True, help="hard budget for this pod")
     ap.add_argument("--name", default="spectral-exp")
     ap.add_argument("--disk-gb", type=int, default=80)
+    ap.add_argument("--attach", default=None, help="reuse an already running pod id instead of creating one")
+    ap.add_argument("--cost-per-hr", type=float, default=None, help="price of the attached pod (USD/h)")
     args = ap.parse_args()
     load_env()
     plan = json.loads(Path(args.plan).read_text())
@@ -87,7 +91,11 @@ def main():
     out.parent.mkdir(exist_ok=True)
     pod_id, cost_hr, t_start = None, None, time.time()
     try:
-        for spec in args.gpus:
+        if args.attach:
+            pod_id, cost_hr = args.attach, float(args.cost_per_hr or 0)
+            record.update(pod_id=pod_id, attached=True, cost_per_hr=cost_hr)
+            log(f"attached to pod {pod_id} ({cost_hr} USD/h)")
+        for spec in ([] if args.attach else args.gpus):
             gpu, cloud = spec.split("|")
             r = rp("pod", "create", "--name", args.name, "--image", args.image, "--gpu-id", gpu,
                    "--cloud-type", cloud, "--container-disk-in-gb", str(args.disk_gb), "--ports", "8000/http",
@@ -113,6 +121,8 @@ def main():
                 if h.get("status") == "ok":
                     log(f"API ready: {h.get('device_name')} (v{h.get('version')})")
                     break
+            except urllib.error.HTTPError as exc:
+                log(f"health: HTTP {exc.code}")
             except (urllib.error.URLError, TimeoutError, ConnectionError, json.JSONDecodeError):
                 pass
             if spent() > args.max_usd:

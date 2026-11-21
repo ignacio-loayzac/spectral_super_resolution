@@ -126,6 +126,9 @@ def evaluate(spec, loader, device, groups, n_boot=2000):
             "data_scale": scale, **point, "ci95": ci,
             "rmse_by_group": {g: math.sqrt(v / n_total) for g, v in grp_se.items()},
             "valid_pixel_fraction": float(T["npx"].sum() / (len(T["npx"]) * 64 * 64)),
+            "per_tile": {"rmse": np.sqrt(T["se"] / np.maximum(T["npx"], 1)).round(6).tolist(),
+                         "sam": (T["ang"] / np.maximum(T["npx"], 1)).round(6).tolist(),
+                         "npx": T["npx"].astype(int).tolist()},
             "seconds": round(time.perf_counter() - t0, 1)}
 
 

@@ -1,0 +1,1 @@
+[{"name": "R lineal", "model": "linear", "checkpoint": "results/linear_baseline.pt", "data_scale": 10000.0}]

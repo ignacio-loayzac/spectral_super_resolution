@@ -8,3 +8,5 @@ build/
 outputs/
 /tmp/spectral_sr_jobs/
 .DS_Store
+zenodo_release/
+

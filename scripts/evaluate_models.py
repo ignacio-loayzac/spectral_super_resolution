@@ -73,6 +73,8 @@ def resolve_spec(spec: dict) -> dict:
 
 
 def build(spec: dict) -> torch.nn.Module:
+    if spec["model"] == "linear":  # per-pixel linear baseline (scripts/linear_baseline.py), a 1x1 convolution
+        return torch.nn.Conv2d(7, 175, 1)
     if spec["model"] == "koundinya":
         return Koundinya2D_CNN()
     if spec["model"] == "latent":  # decoder weights/buffers come from the checkpoint

@@ -1,0 +1,52 @@
+[
+ {
+  "name": "LR seed1",
+  "run": "regfinal/LR/seed1/20261122_025158",
+  "checkpoint": "r2://regfinal/LR/seed1/20261122_025158/checkpoint_epoch_final.pt"
+ },
+ {
+  "name": "LRC seed1",
+  "run": "regfinal/LRC/seed1/20261122_025328",
+  "checkpoint": "r2://regfinal/LRC/seed1/20261122_025328/checkpoint_epoch_final.pt"
+ },
+ {
+  "name": "LR1 seed1",
+  "run": "regfinal/LR1/seed1/20261122_025349",
+  "checkpoint": "r2://regfinal/LR1/seed1/20261122_025349/checkpoint_epoch_final.pt"
+ },
+ {
+  "name": "M0s seed1",
+  "run": "regfinal/M0s/seed1/20261122_025433",
+  "checkpoint": "r2://regfinal/M0s/seed1/20261122_025433/checkpoint_epoch_final.pt"
+ },
+ {
+  "name": "ACs seed1",
+  "run": "regfinal/ACs/seed1/20261122_025505",
+  "checkpoint": "r2://regfinal/ACs/seed1/20261122_025505/checkpoint_epoch_final.pt"
+ },
+ {
+  "name": "LR seed2",
+  "run": "regfinal/LR/seed2/20261122_025158",
+  "checkpoint": "r2://regfinal/LR/seed2/20261122_025158/checkpoint_epoch_final.pt"
+ },
+ {
+  "name": "LRC seed2",
+  "run": "regfinal/LRC/seed2/20261122_025343",
+  "checkpoint": "r2://regfinal/LRC/seed2/20261122_025343/checkpoint_epoch_final.pt"
+ },
+ {
+  "name": "LR1 seed2",
+  "run": "regfinal/LR1/seed2/20261122_025405",
+  "checkpoint": "r2://regfinal/LR1/seed2/20261122_025405/checkpoint_epoch_final.pt"
+ },
+ {
+  "name": "M0s seed2",
+  "run": "regfinal/M0s/seed2/20261122_025444",
+  "checkpoint": "r2://regfinal/M0s/seed2/20261122_025444/checkpoint_epoch_final.pt"
+ },
+ {
+  "name": "ACs seed2",
+  "run": "regfinal/ACs/seed2/20261122_025516",
+  "checkpoint": "r2://regfinal/ACs/seed2/20261122_025516/checkpoint_epoch_final.pt"
+ }
+]

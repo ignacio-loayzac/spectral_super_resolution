@@ -1,0 +1,234 @@
+[
+  {
+    "mode": "sr",
+    "encoder_channels": [
+      150,
+      100,
+      75
+    ],
+    "kernel_mode": "spatial",
+    "hyperion_train_dir": "r2://hyperion_train_npy",
+    "landsat_train_dir": "r2://landsat_train_npy",
+    "hyperion_val_dir": "r2://hyperion_train_npy",
+    "landsat_val_dir": "r2://landsat_train_npy",
+    "data_scale": 10000.0,
+    "augment": true,
+    "use_mask": true,
+    "lr": 0.001,
+    "batch_size": 32,
+    "num_workers": 12,
+    "lr_scheduler": "plateau",
+    "checkpoint_every": 0,
+    "loss": "mse",
+    "content_loss_coeff": 1.0,
+    "style_loss_coeff": 0.0,
+    "model": "linear_residual",
+    "decoder_path": "r2://metadata/linear_baseline.pt",
+    "seed": 1,
+    "epochs": 4,
+    "early_stopping_patience": 0,
+    "train_scenes": [
+      1,
+      2,
+      3,
+      4,
+      7,
+      8,
+      9,
+      10
+    ],
+    "val_scenes": [
+      2
+    ],
+    "experiment_name": "regfinal/LR/seed1"
+  },
+  {
+    "mode": "sr",
+    "encoder_channels": [
+      150,
+      100,
+      75
+    ],
+    "kernel_mode": "spatial",
+    "hyperion_train_dir": "r2://hyperion_train_npy",
+    "landsat_train_dir": "r2://landsat_train_npy",
+    "hyperion_val_dir": "r2://hyperion_train_npy",
+    "landsat_val_dir": "r2://landsat_train_npy",
+    "data_scale": 10000.0,
+    "augment": true,
+    "use_mask": true,
+    "lr": 0.001,
+    "batch_size": 32,
+    "num_workers": 12,
+    "lr_scheduler": "plateau",
+    "checkpoint_every": 0,
+    "loss": "mse",
+    "content_loss_coeff": 1.0,
+    "style_loss_coeff": 0.0,
+    "model": "linear_residual",
+    "decoder_path": "r2://metadata/linear_baseline.pt",
+    "consistency_coeff": 0.319,
+    "degradation_path": "r2://metadata/degradation_175x7.npy",
+    "consistency_bands": [
+      2,
+      4,
+      5,
+      6
+    ],
+    "seed": 1,
+    "epochs": 2,
+    "early_stopping_patience": 0,
+    "train_scenes": [
+      1,
+      2,
+      3,
+      4,
+      7,
+      8,
+      9,
+      10
+    ],
+    "val_scenes": [
+      2
+    ],
+    "experiment_name": "regfinal/LRC/seed1"
+  },
+  {
+    "mode": "sr",
+    "encoder_channels": [
+      150,
+      100,
+      75
+    ],
+    "kernel_mode": "spectral",
+    "hyperion_train_dir": "r2://hyperion_train_npy",
+    "landsat_train_dir": "r2://landsat_train_npy",
+    "hyperion_val_dir": "r2://hyperion_train_npy",
+    "landsat_val_dir": "r2://landsat_train_npy",
+    "data_scale": 10000.0,
+    "augment": true,
+    "use_mask": true,
+    "lr": 0.001,
+    "batch_size": 32,
+    "num_workers": 12,
+    "lr_scheduler": "plateau",
+    "checkpoint_every": 0,
+    "loss": "mse",
+    "content_loss_coeff": 1.0,
+    "style_loss_coeff": 0.0,
+    "model": "linear_residual",
+    "decoder_path": "r2://metadata/linear_baseline.pt",
+    "seed": 1,
+    "epochs": 5,
+    "early_stopping_patience": 0,
+    "train_scenes": [
+      1,
+      2,
+      3,
+      4,
+      7,
+      8,
+      9,
+      10
+    ],
+    "val_scenes": [
+      2
+    ],
+    "experiment_name": "regfinal/LR1/seed1"
+  },
+  {
+    "mode": "sr",
+    "encoder_channels": [
+      150,
+      100,
+      75
+    ],
+    "kernel_mode": "spectral",
+    "hyperion_train_dir": "r2://hyperion_train_npy",
+    "landsat_train_dir": "r2://landsat_train_npy",
+    "hyperion_val_dir": "r2://hyperion_train_npy",
+    "landsat_val_dir": "r2://landsat_train_npy",
+    "data_scale": 10000.0,
+    "augment": true,
+    "use_mask": true,
+    "lr": 0.001,
+    "batch_size": 32,
+    "num_workers": 12,
+    "lr_scheduler": "plateau",
+    "checkpoint_every": 0,
+    "loss": "mse",
+    "content_loss_coeff": 1.0,
+    "style_loss_coeff": 0.0,
+    "model": "hourglass",
+    "seed": 1,
+    "epochs": 4,
+    "early_stopping_patience": 0,
+    "train_scenes": [
+      1,
+      2,
+      3,
+      4,
+      7,
+      8,
+      9,
+      10
+    ],
+    "val_scenes": [
+      2
+    ],
+    "experiment_name": "regfinal/M0s/seed1"
+  },
+  {
+    "mode": "sr",
+    "encoder_channels": [
+      150,
+      100,
+      75
+    ],
+    "kernel_mode": "spectral",
+    "hyperion_train_dir": "r2://hyperion_train_npy",
+    "landsat_train_dir": "r2://landsat_train_npy",
+    "hyperion_val_dir": "r2://hyperion_train_npy",
+    "landsat_val_dir": "r2://landsat_train_npy",
+    "data_scale": 10000.0,
+    "augment": true,
+    "use_mask": true,
+    "lr": 0.001,
+    "batch_size": 32,
+    "num_workers": 12,
+    "lr_scheduler": "plateau",
+    "checkpoint_every": 0,
+    "loss": "mse",
+    "content_loss_coeff": 1.0,
+    "style_loss_coeff": 0.0,
+    "model": "latent",
+    "latent_dim": 16,
+    "decoder_type": "ae",
+    "decoder_path": "r2://Models/AE_bottleneck16_scenes1-10.pt",
+    "consistency_coeff": 0.319,
+    "degradation_path": "r2://metadata/degradation_175x7.npy",
+    "consistency_bands": [
+      2,
+      4,
+      5,
+      6
+    ],
+    "seed": 1,
+    "epochs": 6,
+    "early_stopping_patience": 0,
+    "train_scenes": [
+      1,
+      2,
+      3,
+      4,
+      7,
+      8,
+      9,
+      10
+    ],
+    "val_scenes": [
+      2
+    ],
+    "experiment_name": "regfinal/ACs/seed1"
+  }
+]

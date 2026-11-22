@@ -1,0 +1,27 @@
+[
+ {
+  "name": "LR seed3",
+  "run": "regfinal/LR/seed3/20261122_025604",
+  "checkpoint": "r2://regfinal/LR/seed3/20261122_025604/checkpoint_epoch_final.pt"
+ },
+ {
+  "name": "LRC seed3",
+  "run": "regfinal/LRC/seed3/20261122_025757",
+  "checkpoint": "r2://regfinal/LRC/seed3/20261122_025757/checkpoint_epoch_final.pt"
+ },
+ {
+  "name": "LR1 seed3",
+  "run": "regfinal/LR1/seed3/20261122_025819",
+  "checkpoint": "r2://regfinal/LR1/seed3/20261122_025819/checkpoint_epoch_final.pt"
+ },
+ {
+  "name": "M0s seed3",
+  "run": "regfinal/M0s/seed3/20261122_025858",
+  "checkpoint": "r2://regfinal/M0s/seed3/20261122_025858/checkpoint_epoch_final.pt"
+ },
+ {
+  "name": "ACs seed3",
+  "run": "regfinal/ACs/seed3/20261122_025933",
+  "checkpoint": "r2://regfinal/ACs/seed3/20261122_025933/checkpoint_epoch_final.pt"
+ }
+]

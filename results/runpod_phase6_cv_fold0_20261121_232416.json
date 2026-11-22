@@ -1,0 +1,402 @@
+{
+  "plan": "experiments/phase6_cv_fold0.json",
+  "image": "ghcr.io/ignacio-loayzac/spectral_super_resolution:1.4.0",
+  "started_at": "2026-11-22T02:24:16.129593+00:00",
+  "jobs": [
+    {
+      "job_id": "d08002b0-c57d-4870-8c1e-eb32861aa946",
+      "experiment_name": "regcv/LR/fold0",
+      "request": {
+        "mode": "sr",
+        "encoder_channels": [
+          150,
+          100,
+          75
+        ],
+        "kernel_mode": "spatial",
+        "hyperion_train_dir": "r2://hyperion_train_npy",
+        "landsat_train_dir": "r2://landsat_train_npy",
+        "hyperion_val_dir": "r2://hyperion_train_npy",
+        "landsat_val_dir": "r2://landsat_train_npy",
+        "data_scale": 10000.0,
+        "augment": true,
+        "use_mask": true,
+        "lr": 0.001,
+        "batch_size": 32,
+        "num_workers": 12,
+        "lr_scheduler": "plateau",
+        "checkpoint_every": 0,
+        "loss": "mse",
+        "content_loss_coeff": 1.0,
+        "style_loss_coeff": 0.0,
+        "model": "linear_residual",
+        "decoder_path": "r2://metadata/linear_baseline_fold0.pt",
+        "seed": 42,
+        "epochs": 30,
+        "early_stopping_patience": 6,
+        "train_scenes": [
+          3,
+          4,
+          7,
+          8,
+          9,
+          10
+        ],
+        "val_scenes": [
+          1,
+          2
+        ],
+        "experiment_name": "regcv/LR/fold0"
+      },
+      "status": "done",
+      "r2_prefix": "regcv/LR/fold0/20261122_022508",
+      "error": "",
+      "best": {
+        "epoch": 4,
+        "val_loss": 0.0014662211742101899,
+        "val_ssim": 0.7431685751484286,
+        "val_sam": 0.23108580379579946,
+        "val_mse": 0.0014730983943248212,
+        "val_rmse_reflectance": 0.03838096395773328
+      },
+      "stop_reason": "early_stopping (no improvement for 6 epochs)",
+      "epochs_run": 10,
+      "epoch_seconds": [
+        13.81,
+        12.13,
+        11.67,
+        12.16,
+        12.11,
+        11.77,
+        11.78,
+        12.03,
+        11.8,
+        12.02
+      ],
+      "started_at": "2026-11-22T02:25:08.510487+00:00",
+      "finished_at": "2026-11-22T02:29:08.180893+00:00"
+    },
+    {
+      "job_id": "c70c78ea-4de1-433d-afc3-15c45f0926ac",
+      "experiment_name": "regcv/LRC/fold0",
+      "request": {
+        "mode": "sr",
+        "encoder_channels": [
+          150,
+          100,
+          75
+        ],
+        "kernel_mode": "spatial",
+        "hyperion_train_dir": "r2://hyperion_train_npy",
+        "landsat_train_dir": "r2://landsat_train_npy",
+        "hyperion_val_dir": "r2://hyperion_train_npy",
+        "landsat_val_dir": "r2://landsat_train_npy",
+        "data_scale": 10000.0,
+        "augment": true,
+        "use_mask": true,
+        "lr": 0.001,
+        "batch_size": 32,
+        "num_workers": 12,
+        "lr_scheduler": "plateau",
+        "checkpoint_every": 0,
+        "loss": "mse",
+        "content_loss_coeff": 1.0,
+        "style_loss_coeff": 0.0,
+        "model": "linear_residual",
+        "decoder_path": "r2://metadata/linear_baseline_fold0.pt",
+        "consistency_coeff": 0.319,
+        "degradation_path": "r2://metadata/degradation_175x7.npy",
+        "consistency_bands": [
+          2,
+          4,
+          5,
+          6
+        ],
+        "seed": 42,
+        "epochs": 30,
+        "early_stopping_patience": 6,
+        "train_scenes": [
+          3,
+          4,
+          7,
+          8,
+          9,
+          10
+        ],
+        "val_scenes": [
+          1,
+          2
+        ],
+        "experiment_name": "regcv/LRC/fold0"
+      },
+      "status": "done",
+      "r2_prefix": "regcv/LRC/fold0/20261122_022908",
+      "error": "",
+      "best": {
+        "epoch": 4,
+        "val_loss": 0.0017629110351985982,
+        "val_ssim": 0.7427125823113226,
+        "val_sam": 0.229281051577855,
+        "val_mse": 0.001693515748205473,
+        "val_rmse_reflectance": 0.041152348027852226
+      },
+      "stop_reason": "early_stopping (no improvement for 6 epochs)",
+      "epochs_run": 10,
+      "epoch_seconds": [
+        12.78,
+        12.57,
+        12.57,
+        12.21,
+        12.5,
+        12.39,
+        12.82,
+        12.21,
+        12.47,
+        12.8
+      ],
+      "started_at": "2026-11-22T02:29:08.181677+00:00",
+      "finished_at": "2026-11-22T02:31:18.504195+00:00"
+    },
+    {
+      "job_id": "f72675fb-8677-45ce-90b2-5b29e597812b",
+      "experiment_name": "regcv/LR1/fold0",
+      "request": {
+        "mode": "sr",
+        "encoder_channels": [
+          150,
+          100,
+          75
+        ],
+        "kernel_mode": "spectral",
+        "hyperion_train_dir": "r2://hyperion_train_npy",
+        "landsat_train_dir": "r2://landsat_train_npy",
+        "hyperion_val_dir": "r2://hyperion_train_npy",
+        "landsat_val_dir": "r2://landsat_train_npy",
+        "data_scale": 10000.0,
+        "augment": true,
+        "use_mask": true,
+        "lr": 0.001,
+        "batch_size": 32,
+        "num_workers": 12,
+        "lr_scheduler": "plateau",
+        "checkpoint_every": 0,
+        "loss": "mse",
+        "content_loss_coeff": 1.0,
+        "style_loss_coeff": 0.0,
+        "model": "linear_residual",
+        "decoder_path": "r2://metadata/linear_baseline_fold0.pt",
+        "seed": 42,
+        "epochs": 30,
+        "early_stopping_patience": 6,
+        "train_scenes": [
+          3,
+          4,
+          7,
+          8,
+          9,
+          10
+        ],
+        "val_scenes": [
+          1,
+          2
+        ],
+        "experiment_name": "regcv/LR1/fold0"
+      },
+      "status": "done",
+      "r2_prefix": "regcv/LR1/fold0/20261122_023118",
+      "error": "",
+      "best": {
+        "epoch": 6,
+        "val_loss": 0.0016423809912896926,
+        "val_ssim": 0.7187327031166323,
+        "val_sam": 0.2438005232012754,
+        "val_mse": 0.0016495490147737958,
+        "val_rmse_reflectance": 0.040614640399415036
+      },
+      "stop_reason": "early_stopping (no improvement for 6 epochs)",
+      "epochs_run": 12,
+      "epoch_seconds": [
+        7.11,
+        6.96,
+        6.53,
+        7.12,
+        6.94,
+        7.11,
+        7.29,
+        7.12,
+        7.2,
+        7.02,
+        6.99,
+        7.03
+      ],
+      "started_at": "2026-11-22T02:31:18.504812+00:00",
+      "finished_at": "2026-11-22T02:32:46.180660+00:00"
+    },
+    {
+      "job_id": "ea649392-09e0-44fe-a23f-1e639148595f",
+      "experiment_name": "regcv/M0s/fold0",
+      "request": {
+        "mode": "sr",
+        "encoder_channels": [
+          150,
+          100,
+          75
+        ],
+        "kernel_mode": "spectral",
+        "hyperion_train_dir": "r2://hyperion_train_npy",
+        "landsat_train_dir": "r2://landsat_train_npy",
+        "hyperion_val_dir": "r2://hyperion_train_npy",
+        "landsat_val_dir": "r2://landsat_train_npy",
+        "data_scale": 10000.0,
+        "augment": true,
+        "use_mask": true,
+        "lr": 0.001,
+        "batch_size": 32,
+        "num_workers": 12,
+        "lr_scheduler": "plateau",
+        "checkpoint_every": 0,
+        "loss": "mse",
+        "content_loss_coeff": 1.0,
+        "style_loss_coeff": 0.0,
+        "model": "hourglass",
+        "seed": 42,
+        "epochs": 30,
+        "early_stopping_patience": 6,
+        "train_scenes": [
+          3,
+          4,
+          7,
+          8,
+          9,
+          10
+        ],
+        "val_scenes": [
+          1,
+          2
+        ],
+        "experiment_name": "regcv/M0s/fold0"
+      },
+      "status": "done",
+      "r2_prefix": "regcv/M0s/fold0/20261122_023246",
+      "error": "",
+      "best": {
+        "epoch": 5,
+        "val_loss": 0.0018312590452091348,
+        "val_ssim": 0.7109884196712125,
+        "val_sam": 0.24618530384312903,
+        "val_mse": 0.0018350123042429846,
+        "val_rmse_reflectance": 0.04283704359830385
+      },
+      "stop_reason": "early_stopping (no improvement for 6 epochs)",
+      "epochs_run": 11,
+      "epoch_seconds": [
+        6.81,
+        7.09,
+        7.3,
+        7.11,
+        7.28,
+        6.89,
+        7.11,
+        7.21,
+        7.18,
+        7.0,
+        6.91
+      ],
+      "started_at": "2026-11-22T02:32:46.181439+00:00",
+      "finished_at": "2026-11-22T02:34:07.102382+00:00"
+    },
+    {
+      "job_id": "e051611d-5bed-4bd0-99be-2babd0d951c0",
+      "experiment_name": "regcv/ACs/fold0",
+      "request": {
+        "mode": "sr",
+        "encoder_channels": [
+          150,
+          100,
+          75
+        ],
+        "kernel_mode": "spectral",
+        "hyperion_train_dir": "r2://hyperion_train_npy",
+        "landsat_train_dir": "r2://landsat_train_npy",
+        "hyperion_val_dir": "r2://hyperion_train_npy",
+        "landsat_val_dir": "r2://landsat_train_npy",
+        "data_scale": 10000.0,
+        "augment": true,
+        "use_mask": true,
+        "lr": 0.001,
+        "batch_size": 32,
+        "num_workers": 12,
+        "lr_scheduler": "plateau",
+        "checkpoint_every": 0,
+        "loss": "mse",
+        "content_loss_coeff": 1.0,
+        "style_loss_coeff": 0.0,
+        "model": "latent",
+        "latent_dim": 16,
+        "decoder_type": "ae",
+        "decoder_path": "r2://Models/AE_bottleneck16_scenes1-10.pt",
+        "consistency_coeff": 0.319,
+        "degradation_path": "r2://metadata/degradation_175x7.npy",
+        "consistency_bands": [
+          2,
+          4,
+          5,
+          6
+        ],
+        "seed": 42,
+        "epochs": 30,
+        "early_stopping_patience": 6,
+        "train_scenes": [
+          3,
+          4,
+          7,
+          8,
+          9,
+          10
+        ],
+        "val_scenes": [
+          1,
+          2
+        ],
+        "experiment_name": "regcv/ACs/fold0"
+      },
+      "status": "done",
+      "r2_prefix": "regcv/ACs/fold0/20261122_023407",
+      "error": "",
+      "best": {
+        "epoch": 7,
+        "val_loss": 0.001795256131088301,
+        "val_ssim": 0.7179239257689445,
+        "val_sam": 0.23628224102829748,
+        "val_mse": 0.0016966280576328806,
+        "val_rmse_reflectance": 0.041190145151879236
+      },
+      "stop_reason": "early_stopping (no improvement for 6 epochs)",
+      "epochs_run": 13,
+      "epoch_seconds": [
+        6.59,
+        7.1,
+        7.1,
+        7.37,
+        6.92,
+        6.5,
+        8.07,
+        7.21,
+        6.91,
+        6.99,
+        7.2,
+        7.2,
+        7.0
+      ],
+      "started_at": "2026-11-22T02:34:07.104452+00:00",
+      "finished_at": "2026-11-22T02:35:43.156126+00:00"
+    }
+  ],
+  "pod_id": "663aki1wrldwmb",
+  "gpu": "NVIDIA RTX A5000",
+  "cloud": "SECURE",
+  "cost_per_hr": 0.27,
+  "finished_at": "2026-11-22T02:35:53.240424+00:00",
+  "wall_hours": 0.194,
+  "estimated_usd": 0.05
+}

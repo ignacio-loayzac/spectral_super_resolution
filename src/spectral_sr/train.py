@@ -17,7 +17,7 @@ from .config import ModelConfig, DataConfig, TrainConfig
 from .datasets import SpectralDataset_npy, HyperspectralDataset_npy
 from .losses import SpectralSRLoss, masked_mse, masked_sam, valid_pixel_mask
 from .metrics import SSIM
-from .models import BottleneckSpectralAE, Hourglass, Koundinya2D_CNN, LatentSR
+from .models import BottleneckSpectralAE, Hourglass, Koundinya2D_CNN, LatentSR, LinearResidualSR
 from .device import default_device
 
 
@@ -114,6 +114,10 @@ class Trainer:
             mc = self.model_config
             model = LatentSR(mc.in_channels, mc.out_channels, mc.encoder_channels, latent_dim=mc.latent_dim,
                              decoder_type=mc.decoder_type, decoder_path=mc.decoder_path, kernel_mode=mc.kernel_mode)
+        elif self.model_config.model_type == 'linear_residual':
+            mc = self.model_config
+            model = LinearResidualSR(mc.in_channels, mc.out_channels, mc.encoder_channels,
+                                     linear_path=mc.decoder_path, kernel_mode=mc.kernel_mode)
         elif self.model_config.model_type == 'bottleneck_ae':
             model = BottleneckSpectralAE(self.model_config.out_channels, self.model_config.latent_dim)
         else:

@@ -39,7 +39,7 @@ from spectral_sr.datasets import SpectralDataset_npy
 from spectral_sr.device import default_device
 from spectral_sr.losses import spectral_angle, valid_pixel_mask
 from spectral_sr.metrics import SSIM
-from spectral_sr.models import Hourglass, Koundinya2D_CNN, LatentSR
+from spectral_sr.models import Hourglass, Koundinya2D_CNN, LatentSR, LinearResidualSR
 from spectral_sr.storage import R2Config, resolve_directory, resolve_path
 
 DEFAULT_RUNS = [
@@ -73,6 +73,8 @@ def resolve_spec(spec: dict) -> dict:
 
 
 def build(spec: dict) -> torch.nn.Module:
+    if spec["model"] == "linear_residual":  # linear weights come from the checkpoint
+        return LinearResidualSR(7, 175, spec["encoder_channels"], linear_path=None, kernel_mode=spec["kernel_mode"])
     if spec["model"] == "linear":  # per-pixel linear baseline (scripts/linear_baseline.py), a 1x1 convolution
         return torch.nn.Conv2d(7, 175, 1)
     if spec["model"] == "koundinya":

@@ -166,7 +166,7 @@ class TrainRequest(BaseModel):
     # --- Training parameters ---
     mode: Literal["autoencoder", "sr"] = Field(...,
         description="autoencoder: Hyperion→Hyperion | sr: Landsat→Hyperion")
-    model: Literal["hourglass", "koundinya", "latent", "bottleneck_ae"] = Field("hourglass")
+    model: Literal["hourglass", "koundinya", "latent", "bottleneck_ae", "linear_residual"] = Field("hourglass")
     loss: Literal["mse", "l1", "l1_sam", "perceptual"] = Field("mse")
 
     # Accepts local path OR r2://key

@@ -295,3 +295,33 @@ class LatentSR(nn.Module):
         z = self.generator(x).view(b, self.latent_dim, h, w)
         y = self.decoder(z)
         return y.reshape(b, -1)
+
+
+class LinearResidualSR(nn.Module):
+    """Frozen per-pixel linear map (ridge baseline) plus a learned, gated correction.
+
+        ŷ = L(x) + g · f_θ(x),   g initialised to 0
+
+    ``L`` is a 1x1 convolution 7 -> 175 loaded from ``linear_path`` (scripts/linear_baseline.py)
+    and kept frozen; ``f_θ`` is the usual Hourglass generator. Because the gate starts at 0, training
+    starts exactly at the linear solution and the network only has to learn what the linear model
+    misses. Output is flattened like :class:`Hourglass`.
+    """
+
+    def __init__(self, in_channels: int, out_channels: int, encoder_channels, linear_path: str = None,
+                 kernel_mode: str = "spatial"):
+        super().__init__()
+        self.out_channels = out_channels
+        self.linear = nn.Conv2d(in_channels, out_channels, kernel_size=1)
+        if linear_path:
+            self.linear.load_state_dict(torch.load(linear_path, map_location="cpu"))
+        for p in self.linear.parameters():
+            p.requires_grad_(False)
+        self.net = Hourglass(in_channels, out_channels, encoder_channels[0], encoder_channels[1],
+                             encoder_channels[2], kernel_mode=kernel_mode)
+        self.gate = nn.Parameter(torch.zeros(1))
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        b, _, h, w = x.shape
+        y = self.linear(x) + self.gate * self.net(x).view(b, self.out_channels, h, w)
+        return y.reshape(b, -1)

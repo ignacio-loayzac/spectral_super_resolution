@@ -11,6 +11,9 @@ so the fit is exact and cheap. The model is saved as a 1x1 convolution state dic
 scripts/evaluate_models.py and scripts/downstream_bg.py can evaluate it ("model": "linear").
 
 Usage: python scripts/linear_baseline.py --out results/linear_baseline.pt
+       python scripts/linear_baseline.py --alpha 1e-3 --exclude 1 2 --out results/linear_baseline_fold0.pt
+       (fixed alpha, fitted without the excluded scenes: used for the cross-validation folds of the
+        residual models, so that the frozen linear part never saw the fold's validation scenes)
 """
 import argparse
 import json
@@ -65,8 +68,14 @@ def merge(S, scenes):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default="results/linear_baseline.pt")
+    ap.add_argument("--alpha", type=float, default=None, help="fixed alpha (skips the cross-validation)")
+    ap.add_argument("--exclude", type=int, nargs="*", default=[], help="scenes left out of the fit")
     args = ap.parse_args()
     S = stats_by_scene()
+    if args.alpha is not None:
+        scenes = [s for s in SCENES if s not in args.exclude]
+        save(fit(merge(S, scenes), args.alpha), args.out, {"alpha": args.alpha, "train_scenes": scenes})
+        return
     cv = {}
     for a in ALPHAS:
         e = n = 0.0
@@ -79,16 +88,20 @@ def main():
         cv[a] = {"pooled_rmse": math.sqrt(e / n), "fold_rmse": fold_rmse}
         print(f"alpha {a:g}: CV RMSE {cv[a]['pooled_rmse']:.5f}  folds {[round(r, 4) for r in fold_rmse]}")
     best = min(cv, key=lambda a: cv[a]["pooled_rmse"])
-    Wb = fit(merge(S, SCENES), best)
+    save(fit(merge(S, SCENES), best), args.out,
+         {"alpha": best, "train_scenes": SCENES, "cv_folds": FOLDS, "n_train_pixels": merge(S, SCENES)["n"],
+          "cv": {str(a): v for a, v in cv.items()}})
+    print(f"chosen alpha {best:g}")
+
+
+def save(Wb, out, meta):
     conv = torch.nn.Conv2d(7, 175, 1)
     with torch.no_grad():
         conv.weight.copy_(torch.from_numpy(Wb[:7].T.copy()).float().view(175, 7, 1, 1))
         conv.bias.copy_(torch.from_numpy(Wb[7].copy()).float())
-    torch.save(conv.state_dict(), args.out)
-    Path(args.out).with_suffix(".json").write_text(json.dumps(
-        {"alpha": best, "train_scenes": SCENES, "cv_folds": FOLDS, "n_train_pixels": merge(S, SCENES)["n"],
-         "cv": {str(a): v for a, v in cv.items()}}, indent=1))
-    print(f"chosen alpha {best:g}; saved {args.out}")
+    torch.save(conv.state_dict(), out)
+    Path(out).with_suffix(".json").write_text(json.dumps(meta, indent=1))
+    print(f"saved {out}")
 
 
 if __name__ == "__main__":

@@ -17,7 +17,7 @@ class ModelConfig:
         encoder_channels: List of encoder output channels [upper, middle, lower]
                          E.g., [150, 100, 75] or [90, 45, 10]
     """
-    model_type: Literal['hourglass', 'koundinya', 'latent', 'bottleneck_ae'] = 'hourglass'
+    model_type: Literal['hourglass', 'koundinya', 'latent', 'bottleneck_ae', 'linear_residual'] = 'hourglass'
     in_channels: int = 7
     out_channels: int = 175
     encoder_channels: List[int] = field(default_factory=lambda: [150, 100, 75])
@@ -25,7 +25,8 @@ class ModelConfig:
     # 'latent' (generator -> k-dim code -> frozen decoder) and 'bottleneck_ae'
     latent_dim: int = 16
     decoder_type: Literal['ae', 'pca'] = 'ae'
-    decoder_path: Optional[str] = None   # bottleneck AE state_dict (.pt) or PCA basis (.npz)
+    decoder_path: Optional[str] = None   # bottleneck AE state_dict (.pt), PCA basis (.npz) or, for
+                                         # 'linear_residual', the linear baseline state_dict (.pt)
     
     def __post_init__(self):
         """Validate configuration."""
@@ -37,7 +38,9 @@ class ModelConfig:
         
         if self.model_type == 'latent' and self.decoder_path is None:
             raise ValueError("decoder_path is required for model_type='latent'")
-        if self.model_type in ('hourglass', 'latent'):
+        if self.model_type == 'linear_residual' and self.decoder_path is None:
+            raise ValueError("decoder_path (linear baseline .pt) is required for model_type='linear_residual'")
+        if self.model_type in ('hourglass', 'latent', 'linear_residual'):
             if len(self.encoder_channels) != 3:
                 raise ValueError(
                     f"encoder_channels must have exactly 3 values, got {len(self.encoder_channels)}"

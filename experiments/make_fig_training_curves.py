@@ -57,6 +57,13 @@ def color_legend(ax, spec, loc):
     return ax.legend(handles=hs, frameon=False, fontsize=8, loc=loc)
 
 
+def s2(v, s):
+    """Study 2 run: for M1 the extended run (identical to the 50-epoch run for its first 50 epochs)."""
+    return h(f"long__M1__seed{s}") if v == "M1" else h(f"final__{v}__seed{s}")
+
+
+LIM50 = Line2D([], [], color="#7f7f7f", lw=0.9, ls=(0, (4, 3)), label="límite del Estudio 2 (50 épocas)")
+
 END = [Line2D([], [], color="k", marker="x", ls="none", label="límite de épocas"),
        Line2D([], [], color="k", marker="o", mfc="none", ls="none", label="parada temprana")]
 
@@ -64,7 +71,7 @@ END = [Line2D([], [], color="k", marker="x", ls="none", label="límite de época
 fig, (ax, az) = plt.subplots(1, 2, figsize=(11, 4), gridspec_kw={"width_ratios": [1, 1]})
 for v, (lab, col) in S2.items():
     for s in (1, 2, 3):
-        r = h(f"final__{v}__seed{s}")
+        r = s2(v, s)
         for a in (ax, az):
             curve(a, r["val_rmse_reflectance"], col, SEED_LS[s], r["stop_reason"])
 ax.set_yscale("log"); ax.set_title("(a) Todas las variantes (escala logarítmica)", fontsize=9.5, loc="left")
@@ -72,8 +79,9 @@ az.set_ylim(0.028, 0.075); az.set_title("(b) Ampliación del rango de M0, M2 y M
 for a in (ax, az):
     a.set_xlabel("Época"); a.set_ylabel("RMSE de validación (reflectancia)")
 ax.set_ylim(0.02, 3000)
+ax.axvline(50, color="#7f7f7f", lw=0.9, ls=(0, (4, 3)))
 ax.add_artist(color_legend(ax, S2, "upper right"))
-style_legend(ax, [(f"semilla {s}", SEED_LS[s]) for s in (1, 2, 3)], None, loc="center", extra=END, anchor=(0.6, 0.42))
+style_legend(ax, [(f"semilla {s}", SEED_LS[s]) for s in (1, 2, 3)], None, loc="center", extra=END[1:] + [LIM50], anchor=(0.6, 0.42))
 az.set_xlim(0, 41)
 fig.tight_layout(); fig.savefig(OUT / "fig_val_rmse_estudio2.pdf"); plt.close(fig)
 
@@ -96,24 +104,27 @@ TR, VA = "#252525", "#e6550d"
 fig, axs = plt.subplots(2, 2, figsize=(10, 7))
 for ax, (v, (lab, _)) in zip(axs.flat, S2.items()):
     for s in (1, 2, 3):
-        r = h(f"final__{v}__seed{s}")
+        r = s2(v, s)
         curve(ax, r["train_losses"], TR, SEED_LS[s])
         curve(ax, r["val_losses"], VA, SEED_LS[s], r["stop_reason"])
     ax.set_yscale("log"); ax.set_title(lab, fontsize=10, loc="left"); ax.set_xlabel("Época"); ax.set_ylabel("Pérdida")
+    if v == "M1":
+        ax.axvline(50, color="#7f7f7f", lw=0.9, ls=(0, (4, 3)))
 style_legend(axs[0, 0], [(f"semilla {s}", SEED_LS[s]) for s in (1, 2, 3)], None, loc="upper right",
-             extra=[Line2D([], [], color=TR, lw=2, label="entrenamiento"), Line2D([], [], color=VA, lw=2, label="validación")] + END)
+             extra=[Line2D([], [], color=TR, lw=2, label="entrenamiento"), Line2D([], [], color=VA, lw=2, label="validación")] + END[1:] + [LIM50])
 fig.tight_layout(); fig.savefig(OUT / "fig_ap_perdidas_estudio2.pdf"); plt.close(fig)
 
 # ---------------- appendix: M1 loss components ----------------
 fig, ax = plt.subplots(figsize=(8, 3.8))
 for s in (1, 2, 3):
-    c = h(f"final__M1__seed{s}")["train_loss_components"]
+    c = h(f"long__M1__seed{s}")["train_loss_components"]
     curve(ax, [e["content"] for e in c], "#7f7f7f", SEED_LS[s])
     curve(ax, [e["style"] for e in c], "#cb181d", SEED_LS[s])
 ax.set_yscale("log"); ax.set_xlabel("Época"); ax.set_ylabel("Valor medio por época (entrenamiento)")
+ax.axvline(50, color="#7f7f7f", lw=0.9, ls=(0, (4, 3)))
 style_legend(ax, [(f"semilla {s}", SEED_LS[s]) for s in (1, 2, 3)], None, loc="upper right",
              extra=[Line2D([], [], color="#7f7f7f", lw=2, label=r"$\mathcal{L}_{content}$ (MSE)"),
-                    Line2D([], [], color="#cb181d", lw=2, label=r"$\beta\,\mathcal{L}_{Gram}$")])
+                    Line2D([], [], color="#cb181d", lw=2, label=r"$\beta\,\mathcal{L}_{Gram}$"), LIM50])
 fig.tight_layout(); fig.savefig(OUT / "fig_ap_componentes_m1.pdf"); plt.close(fig)
 
 # ---------------- appendix: Study 3 CV losses ----------------

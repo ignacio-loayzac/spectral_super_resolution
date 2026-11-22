@@ -7,4 +7,6 @@ build/
 .env
 outputs/
 /tmp/spectral_sr_jobs/
-.DS_Storezenodo_release/
+.DS_Store
+zenodo_release/
+

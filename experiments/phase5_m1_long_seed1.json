@@ -1,0 +1,34 @@
+[
+  {
+    "mode": "sr",
+    "model": "hourglass",
+    "encoder_channels": [
+      150,
+      100,
+      75
+    ],
+    "hyperion_train_dir": "r2://splits/v2/hyperion_train_npy",
+    "landsat_train_dir": "r2://splits/v2/landsat_train_npy",
+    "hyperion_val_dir": "r2://splits/v1/hyperion_val_npy",
+    "landsat_val_dir": "r2://splits/v1/landsat_val_npy",
+    "data_scale": 10000.0,
+    "augment": true,
+    "use_mask": true,
+    "lr": 0.001,
+    "batch_size": 32,
+    "num_workers": 12,
+    "lr_scheduler": "plateau",
+    "checkpoint_every": 0,
+    "content_loss_coeff": 1.0,
+    "loss": "perceptual",
+    "ae_checkpoint": "r2://Models/AEHG_150_100_75.pt",
+    "ae_kernel_mode": "spatial",
+    "ae_input_scale": 10000.0,
+    "gram_mode": "raw",
+    "style_loss_coeff": 242.0,
+    "seed": 1,
+    "epochs": 300,
+    "early_stopping_patience": 8,
+    "experiment_name": "long/M1/seed1"
+  }
+]

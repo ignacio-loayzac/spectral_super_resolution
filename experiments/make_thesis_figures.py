@@ -17,7 +17,7 @@ import numpy as np
 OUT = Path("../Masters_Thesis_DI/figures")
 ARMS = ["M0", "C", "P", "A", "AC"]
 LABEL = {"M0": "M0 (MSE)", "C": "C (+ consistencia)", "P": "P (PCA-16)", "A": "A (AE-16)", "AC": "AC (AE-16 + consistencia)"}
-COLOR = {"M0": "#7f7f7f", "C": "#9ecae1", "P": "#fdae6b", "A": "#6baed6", "AC": "#08519c"}
+COLOR = {"M0": "#7f7f7f", "C": "#41ab5d", "P": "#fdae6b", "A": "#6baed6", "AC": "#08519c"}
 plt.rcParams.update({"font.size": 10, "axes.spines.top": False, "axes.spines.right": False})
 
 # --- RMSE per band group ------------------------------------------------------

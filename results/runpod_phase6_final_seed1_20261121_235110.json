@@ -1,0 +1,372 @@
+{
+  "plan": "experiments/phase6_final_seed1.json",
+  "image": "ghcr.io/ignacio-loayzac/spectral_super_resolution:1.4.0",
+  "started_at": "2026-11-22T02:51:10.004171+00:00",
+  "jobs": [
+    {
+      "job_id": "3dbcc912-1cd2-435f-a66f-0e210c823118",
+      "experiment_name": "regfinal/LR/seed1",
+      "request": {
+        "mode": "sr",
+        "encoder_channels": [
+          150,
+          100,
+          75
+        ],
+        "kernel_mode": "spatial",
+        "hyperion_train_dir": "r2://hyperion_train_npy",
+        "landsat_train_dir": "r2://landsat_train_npy",
+        "hyperion_val_dir": "r2://hyperion_train_npy",
+        "landsat_val_dir": "r2://landsat_train_npy",
+        "data_scale": 10000.0,
+        "augment": true,
+        "use_mask": true,
+        "lr": 0.001,
+        "batch_size": 32,
+        "num_workers": 12,
+        "lr_scheduler": "plateau",
+        "checkpoint_every": 0,
+        "loss": "mse",
+        "content_loss_coeff": 1.0,
+        "style_loss_coeff": 0.0,
+        "model": "linear_residual",
+        "decoder_path": "r2://metadata/linear_baseline.pt",
+        "seed": 1,
+        "epochs": 4,
+        "early_stopping_patience": 0,
+        "train_scenes": [
+          1,
+          2,
+          3,
+          4,
+          7,
+          8,
+          9,
+          10
+        ],
+        "val_scenes": [
+          2
+        ],
+        "experiment_name": "regfinal/LR/seed1"
+      },
+      "status": "done",
+      "r2_prefix": "regfinal/LR/seed1/20261122_025158",
+      "error": "",
+      "best": {
+        "epoch": 3,
+        "val_loss": 0.0009712106802908238,
+        "val_ssim": 0.7867754101753235,
+        "val_sam": 0.17956296790432041,
+        "val_mse": 0.0009719288950292436,
+        "val_rmse_reflectance": 0.031175774168883823
+      },
+      "stop_reason": "max_epochs",
+      "epochs_run": 4,
+      "epoch_seconds": [
+        11.51,
+        9.07,
+        9.28,
+        8.88
+      ],
+      "started_at": "2026-11-22T02:51:58.794257+00:00",
+      "finished_at": "2026-11-22T02:53:28.263160+00:00"
+    },
+    {
+      "job_id": "9db9b16a-d599-44bb-bb4b-3b1b31222e85",
+      "experiment_name": "regfinal/LRC/seed1",
+      "request": {
+        "mode": "sr",
+        "encoder_channels": [
+          150,
+          100,
+          75
+        ],
+        "kernel_mode": "spatial",
+        "hyperion_train_dir": "r2://hyperion_train_npy",
+        "landsat_train_dir": "r2://landsat_train_npy",
+        "hyperion_val_dir": "r2://hyperion_train_npy",
+        "landsat_val_dir": "r2://landsat_train_npy",
+        "data_scale": 10000.0,
+        "augment": true,
+        "use_mask": true,
+        "lr": 0.001,
+        "batch_size": 32,
+        "num_workers": 12,
+        "lr_scheduler": "plateau",
+        "checkpoint_every": 0,
+        "loss": "mse",
+        "content_loss_coeff": 1.0,
+        "style_loss_coeff": 0.0,
+        "model": "linear_residual",
+        "decoder_path": "r2://metadata/linear_baseline.pt",
+        "consistency_coeff": 0.319,
+        "degradation_path": "r2://metadata/degradation_175x7.npy",
+        "consistency_bands": [
+          2,
+          4,
+          5,
+          6
+        ],
+        "seed": 1,
+        "epochs": 2,
+        "early_stopping_patience": 0,
+        "train_scenes": [
+          1,
+          2,
+          3,
+          4,
+          7,
+          8,
+          9,
+          10
+        ],
+        "val_scenes": [
+          2
+        ],
+        "experiment_name": "regfinal/LRC/seed1"
+      },
+      "status": "done",
+      "r2_prefix": "regfinal/LRC/seed1/20261122_025328",
+      "error": "",
+      "best": {
+        "epoch": 1,
+        "val_loss": 0.0006285617055254988,
+        "val_ssim": 0.8458353281021118,
+        "val_sam": 0.1533851251140055,
+        "val_mse": 0.0005859899751707047,
+        "val_rmse_reflectance": 0.02420722981199428
+      },
+      "stop_reason": "max_epochs",
+      "epochs_run": 2,
+      "epoch_seconds": [
+        9.5,
+        9.32
+      ],
+      "started_at": "2026-11-22T02:53:28.263896+00:00",
+      "finished_at": "2026-11-22T02:53:49.761256+00:00"
+    },
+    {
+      "job_id": "3d6693f0-da4d-4541-8258-8423ac3a58f4",
+      "experiment_name": "regfinal/LR1/seed1",
+      "request": {
+        "mode": "sr",
+        "encoder_channels": [
+          150,
+          100,
+          75
+        ],
+        "kernel_mode": "spectral",
+        "hyperion_train_dir": "r2://hyperion_train_npy",
+        "landsat_train_dir": "r2://landsat_train_npy",
+        "hyperion_val_dir": "r2://hyperion_train_npy",
+        "landsat_val_dir": "r2://landsat_train_npy",
+        "data_scale": 10000.0,
+        "augment": true,
+        "use_mask": true,
+        "lr": 0.001,
+        "batch_size": 32,
+        "num_workers": 12,
+        "lr_scheduler": "plateau",
+        "checkpoint_every": 0,
+        "loss": "mse",
+        "content_loss_coeff": 1.0,
+        "style_loss_coeff": 0.0,
+        "model": "linear_residual",
+        "decoder_path": "r2://metadata/linear_baseline.pt",
+        "seed": 1,
+        "epochs": 5,
+        "early_stopping_patience": 0,
+        "train_scenes": [
+          1,
+          2,
+          3,
+          4,
+          7,
+          8,
+          9,
+          10
+        ],
+        "val_scenes": [
+          2
+        ],
+        "experiment_name": "regfinal/LR1/seed1"
+      },
+      "status": "done",
+      "r2_prefix": "regfinal/LR1/seed1/20261122_025349",
+      "error": "",
+      "best": {
+        "epoch": 5,
+        "val_loss": 0.0006697212138533359,
+        "val_ssim": 0.8325331583619118,
+        "val_sam": 0.14757215056104736,
+        "val_mse": 0.0006705023855133367,
+        "val_rmse_reflectance": 0.025894060815432884
+      },
+      "stop_reason": "max_epochs",
+      "epochs_run": 5,
+      "epoch_seconds": [
+        7.86,
+        7.41,
+        7.33,
+        11.63,
+        7.4
+      ],
+      "started_at": "2026-11-22T02:53:49.761715+00:00",
+      "finished_at": "2026-11-22T02:54:33.381615+00:00"
+    },
+    {
+      "job_id": "c30cddaf-c8e8-4220-8574-3732c5130eba",
+      "experiment_name": "regfinal/M0s/seed1",
+      "request": {
+        "mode": "sr",
+        "encoder_channels": [
+          150,
+          100,
+          75
+        ],
+        "kernel_mode": "spectral",
+        "hyperion_train_dir": "r2://hyperion_train_npy",
+        "landsat_train_dir": "r2://landsat_train_npy",
+        "hyperion_val_dir": "r2://hyperion_train_npy",
+        "landsat_val_dir": "r2://landsat_train_npy",
+        "data_scale": 10000.0,
+        "augment": true,
+        "use_mask": true,
+        "lr": 0.001,
+        "batch_size": 32,
+        "num_workers": 12,
+        "lr_scheduler": "plateau",
+        "checkpoint_every": 0,
+        "loss": "mse",
+        "content_loss_coeff": 1.0,
+        "style_loss_coeff": 0.0,
+        "model": "hourglass",
+        "seed": 1,
+        "epochs": 4,
+        "early_stopping_patience": 0,
+        "train_scenes": [
+          1,
+          2,
+          3,
+          4,
+          7,
+          8,
+          9,
+          10
+        ],
+        "val_scenes": [
+          2
+        ],
+        "experiment_name": "regfinal/M0s/seed1"
+      },
+      "status": "done",
+      "r2_prefix": "regfinal/M0s/seed1/20261122_025433",
+      "error": "",
+      "best": {
+        "epoch": 4,
+        "val_loss": 0.0007172903297032462,
+        "val_ssim": 0.8367124125361443,
+        "val_sam": 0.16093957156043914,
+        "val_mse": 0.0007173983913919056,
+        "val_rmse_reflectance": 0.02678429374450455
+      },
+      "stop_reason": "max_epochs",
+      "epochs_run": 4,
+      "epoch_seconds": [
+        7.93,
+        7.85,
+        7.13,
+        7.17
+      ],
+      "started_at": "2026-11-22T02:54:33.382329+00:00",
+      "finished_at": "2026-11-22T02:55:05.325619+00:00"
+    },
+    {
+      "job_id": "627d8585-4bb5-4093-bf76-9148ce60d4a9",
+      "experiment_name": "regfinal/ACs/seed1",
+      "request": {
+        "mode": "sr",
+        "encoder_channels": [
+          150,
+          100,
+          75
+        ],
+        "kernel_mode": "spectral",
+        "hyperion_train_dir": "r2://hyperion_train_npy",
+        "landsat_train_dir": "r2://landsat_train_npy",
+        "hyperion_val_dir": "r2://hyperion_train_npy",
+        "landsat_val_dir": "r2://landsat_train_npy",
+        "data_scale": 10000.0,
+        "augment": true,
+        "use_mask": true,
+        "lr": 0.001,
+        "batch_size": 32,
+        "num_workers": 12,
+        "lr_scheduler": "plateau",
+        "checkpoint_every": 0,
+        "loss": "mse",
+        "content_loss_coeff": 1.0,
+        "style_loss_coeff": 0.0,
+        "model": "latent",
+        "latent_dim": 16,
+        "decoder_type": "ae",
+        "decoder_path": "r2://Models/AE_bottleneck16_scenes1-10.pt",
+        "consistency_coeff": 0.319,
+        "degradation_path": "r2://metadata/degradation_175x7.npy",
+        "consistency_bands": [
+          2,
+          4,
+          5,
+          6
+        ],
+        "seed": 1,
+        "epochs": 6,
+        "early_stopping_patience": 0,
+        "train_scenes": [
+          1,
+          2,
+          3,
+          4,
+          7,
+          8,
+          9,
+          10
+        ],
+        "val_scenes": [
+          2
+        ],
+        "experiment_name": "regfinal/ACs/seed1"
+      },
+      "status": "done",
+      "r2_prefix": "regfinal/ACs/seed1/20261122_025505",
+      "error": "",
+      "best": {
+        "epoch": 6,
+        "val_loss": 0.0008075847254076507,
+        "val_ssim": 0.8163974583148956,
+        "val_sam": 0.17558222561136694,
+        "val_mse": 0.000764797734509345,
+        "val_rmse_reflectance": 0.027654976668031104
+      },
+      "stop_reason": "max_epochs",
+      "epochs_run": 6,
+      "epoch_seconds": [
+        7.2,
+        7.2,
+        7.2,
+        7.47,
+        7.0,
+        8.0
+      ],
+      "started_at": "2026-11-22T02:55:05.326084+00:00",
+      "finished_at": "2026-11-22T02:55:51.613460+00:00"
+    }
+  ],
+  "pod_id": "w963wvd4feo4c8",
+  "gpu": "NVIDIA GeForce RTX 4090",
+  "cloud": "SECURE",
+  "cost_per_hr": 0.89,
+  "finished_at": "2026-11-22T02:56:07.118021+00:00",
+  "wall_hours": 0.083,
+  "estimated_usd": 0.07
+}
